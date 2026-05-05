@@ -30,7 +30,22 @@ pipeline {
                 }
             }
         }
-
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo 'Pushing images to Docker Hub...'
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
+                        // Tag và Push Backend (Dùng tên image mặc định của docker-compose)
+                        sh 'docker tag auto-deploy_stack-backend ductoanoxo/backend:latest'
+                        sh 'docker push ductoanoxo/backend:latest'
+                        
+                        // Tag và Push Frontend
+                        sh 'docker tag auto-deploy_stack-frontend ductoanoxo/frontend:latest'
+                        sh 'docker push ductoanoxo/frontend:latest'
+                    }
+                }
+            }
+        }
         stage('Deploy') {
             steps {
                 script {
