@@ -11,6 +11,14 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Stage 2: Tester stage
+FROM python:3.10-slim AS tester
+WORKDIR /app
+COPY --from=builder /install /usr/local
+COPY . .
+RUN pip install pytest
+RUN pytest
+
 #Stage 2 : Production Stage
 
 FROM python:3.10-slim 

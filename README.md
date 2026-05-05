@@ -105,7 +105,12 @@ pytest
 
 ---
 
+---
+
+## 🏗️ CI/CD with Jenkins
+
+For detailed instructions on how to set up Jenkins on AWS EC2 for this project, please refer to the [JENKINS_SETUP.md](JENKINS_SETUP.md) guide.
+
 <p align="center">
   Built with ❤️ for the DevOps Community
 </p>
-# auto-deploy_stack
