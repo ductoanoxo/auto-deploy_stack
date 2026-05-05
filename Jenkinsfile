@@ -6,13 +6,13 @@ pipeline {
     }
 
     stages {
-        stage('🚀 Checkout') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('🧪 Test Backend') {
+        stage('Test Backend') {
             steps {
                 script {
                     echo 'Running Backend Tests...'
@@ -22,22 +22,23 @@ pipeline {
             }
         }
 
-        stage('🏗️ Build Images') {
+        stage('Build Images') {
             steps {
                 script {
                     echo 'Building Docker Images...'
-                    sh 'docker-compose build'
+                    sh 'docker compose build'
                 }
             }
         }
 
-        stage('🚢 Deploy') {
+        stage('Deploy') {
             steps {
                 script {
                     echo 'Deploying Application...'
                     // Restart containers with the new images
-                    sh 'docker-compose down'
-                    sh 'docker-compose up -d'
+                    sh 'docker compose down'
+                    sh 'docker compose up -d'
+                    sh 'docker image prune -f'
                 }
             }
         }
@@ -45,10 +46,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline finished successfully!'
+            echo 'Pipeline finished successfully!'
         }
         failure {
-            echo '❌ Pipeline failed. Please check the logs.'
+            echo 'Pipeline failed. Please check the logs.'
         }
     }
 }
