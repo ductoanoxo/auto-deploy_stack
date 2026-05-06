@@ -374,3 +374,267 @@ body {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
 }
+
+/* Loading */
+.loading-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--f-inter);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--c-green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===================== */
+/* Status Card           */
+/* ===================== */
+.status-card {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 728px;
+  background: rgba(10, 15, 13, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeSlideUp 0.4s ease-out;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-inter);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--c-white);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--c-green);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px var(--c-green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 4px var(--c-green); }
+  50% { box-shadow: 0 0 12px var(--c-green), 0 0 24px var(--c-green); }
+}
+
+.status-time {
+  font-family: var(--f-inter);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Metrics */
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--f-inter);
+  font-weight: 500;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  min-width: 70px;
+}
+
+.metric-icon {
+  font-size: 14px;
+}
+
+.metric-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease-out;
+}
+
+.metric-value {
+  font-family: var(--f-inter);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--c-white);
+  min-width: 100px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Docker Section */
+.docker-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+.docker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.docker-title {
+  font-family: var(--f-inter);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--c-white);
+}
+
+.docker-status {
+  font-family: var(--f-inter);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.docker-status.connected {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.docker-status.disconnected {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* Container List */
+.container-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.container-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.container-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.container-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.container-status-dot.running {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+}
+
+.container-status-dot.stopped {
+  background: #f87171;
+}
+
+.container-name {
+  font-family: var(--f-inter);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--c-white);
+  min-width: 120px;
+}
+
+.container-image {
+  flex: 1;
+  font-family: var(--f-inter);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.container-badge {
+  font-family: var(--f-inter);
+  font-weight: 500;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.container-badge.running {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.container-badge.exited {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.no-containers {
+  font-family: var(--f-inter);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  padding: 16px;
+}

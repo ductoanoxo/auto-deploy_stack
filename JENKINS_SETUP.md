@@ -110,3 +110,42 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
+
+---
+
+## 7. Nhật ký xử lý lỗi (Troubleshooting) 🛠️
+
+Trong quá trình setup thực tế, chúng ta đã gặp và xử lý các vấn đề sau:
+
+### ❌ Lỗi 1: GPG error (NO_PUBKEY) khi cài Jenkins
+*   **Hiện tượng:** Không thể `apt update` do thiếu khóa bảo mật của Jenkins.
+*   **Cách sửa:** Cài đặt thêm `dirmngr` và dùng `curl` để tải trực tiếp khóa mới nhất:
+    ```bash
+    sudo apt install dirmngr ca-certificates curl gnupg -y
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    ```
+
+### ❌ Lỗi 2: Jenkins không khởi động (Sai phiên bản Java)
+*   **Hiện tượng:** Log báo `Running with Java 17... minimum required version (Java 21)`.
+*   **Cách sửa:** Nâng cấp lên **OpenJDK 21**:
+    ```bash
+    sudo apt install openjdk-21-jre -y
+    sudo update-alternatives --config java # Chọn bản 21
+    sudo systemctl restart jenkins
+    ```
+
+### ❌ Lỗi 3: `docker-compose: not found` trong Pipeline
+*   **Hiện tượng:** Jenkinsfile dùng lệnh cũ có dấu gạch ngang.
+*   **Cách sửa:** Đổi tất cả lệnh `docker-compose` thành **`docker compose`** (dấu cách) để tương thích với Docker Compose V2.
+
+### ❌ Lỗi 4: `MissingPropertyException: No such property: docker`
+*   **Hiện tượng:** Jenkins không hiểu lệnh `docker.withRegistry`.
+*   **Cách sửa:** Vào Manage Jenkins -> Plugins -> Cài đặt plugin **"Docker Pipeline"**.
+
+### ❌ Lỗi 5: `Could not find credentials matching docker-hub-creds`
+*   **Hiện tượng:** Sai ID khi tạo Credentials.
+*   **Cách sửa:** Khi tạo Credential cho Docker Hub, phải đặt ô **ID** chính xác là `docker-hub-creds`.
+
+### ❌ Lỗi 6: Webhook GitHub bị lỗi khi restart EC2
+*   **Hiện tượng:** IP máy ảo bị thay đổi khiến GitHub không gửi được tín hiệu về Jenkins.
+*   **Cách sửa:** Sử dụng **Elastic IP** trên AWS để cố định địa chỉ IP cho server.

@@ -36,12 +36,12 @@ pipeline {
                     echo 'Pushing images to Docker Hub...'
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
                         // Tag và Push Backend (Dùng tên image mặc định của docker-compose)
-                        sh 'docker tag auto-deploy_stack-backend ductoanoxo/backend:latest'
-                        sh 'docker push ductoanoxo/backend:latest'
+                        sh 'docker tag auto-deploy_stack-backend toantra349/backend:latest'
+                        sh 'docker push toantra349/backend:latest'
                         
                         // Tag và Push Frontend
-                        sh 'docker tag auto-deploy_stack-frontend ductoanoxo/frontend:latest'
-                        sh 'docker push ductoanoxo/frontend:latest'
+                        sh 'docker tag auto-deploy_stack-frontend toantra349/frontend:latest'
+                        sh 'docker push toantra349/frontend:latest'
                     }
                 }
             }
@@ -54,6 +54,23 @@ pipeline {
                     sh 'docker compose down'
                     sh 'docker compose up -d'
                     sh 'docker image prune -f'
+                }
+            }
+        }
+        stage('Health Check') {
+            steps {
+                script {
+                    echo 'Running Health Check...'
+                    // Wait for containers to fully start
+                    sh 'sleep 10'
+                    
+                    // Verify backend is running
+                    sh 'curl -f http://localhost:8000/api/health'
+                    echo 'Health check passed!'
+                    
+                    // Verify ChatOps /status endpoint can reach Docker
+                    sh 'curl -f http://localhost:8000/api/status'
+                    echo 'Status endpoint verified!'
                 }
             }
         }

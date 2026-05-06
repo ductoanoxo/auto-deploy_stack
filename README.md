@@ -24,12 +24,9 @@ A professional, full-stack demonstration platform engineered for modern **Docker
 
 ## 🏗️ Project Architecture
 
-```mermaid
-graph LR
-    User((User)) <--> Frontend[React/Vite Frontend]
-    Frontend <--> Backend[FastAPI Backend]
-    Backend <--> API[API Endpoints]
-```
+![DevOps Infographic](image/inforgraphics.png)
+
+*Comprehensive overview of the Jenkins CI/CD pipeline, Grafana LGTM monitoring stack, and AI-powered ChatOps integration.*
 
 ---
 
