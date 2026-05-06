@@ -22,14 +22,6 @@ A professional, full-stack demonstration platform engineered for modern **Docker
 
 ---
 
-## 🏗️ Project Architecture
-
-![DevOps Infographic](image/inforgraphics.png)
-
-*Comprehensive overview of the Jenkins CI/CD pipeline, Grafana LGTM monitoring stack, and AI-powered ChatOps integration.*
-
----
-
 ## 🚀 Getting Started
 
 ### 🐳 The Docker Way (Recommended)
