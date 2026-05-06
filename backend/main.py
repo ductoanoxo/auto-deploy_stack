@@ -1,27 +1,57 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
 import psutil
 import logging
+import sys
+from pythonjsonlogger import jsonlogger
+from prometheus_fastapi_instrumentator import Instrumentator
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
+from database import engine, Base, get_db
+from models import User
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured JSON logging
+logger = logging.getLogger()
+logHandler = logging.StreamHandler(sys.stdout)
+formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+logHandler.setFormatter(formatter)
+logger.addHandler(logHandler)
+logger.setLevel(logging.INFO)
 
-app = FastAPI(title="DevOps ChatOps API")
+app = FastAPI(title="DevOps ChatOps & CRUD API")
 
 # Enable CORS for the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for demo purposes
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Models ---
+# Initialize Prometheus Instrumentator
+Instrumentator().instrument(app).expose(app)
+
+# --- Models & Schemas ---
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    full_name: str
+
+class UserSchema(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class GreetingRequest(BaseModel):
     name: str
@@ -50,7 +80,17 @@ class SystemStatus(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+    db_status: str
     timestamp: str
+
+# --- Startup ---
+
+@app.on_event("startup")
+async def startup():
+    # Create tables in database
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables created/verified")
 
 # --- Helper ---
 
@@ -71,14 +111,92 @@ def get_docker_containers() -> tuple[list[ContainerInfo], str]:
         ]
         return container_list, "connected"
     except Exception as e:
-        logger.warning(f"Docker socket not available: {e}")
-        return [], f"unavailable ({type(e).__name__})"
+        logger.warning(f"Docker socket not available", extra={"error": str(e)})
+        return [], f"unavailable"
 
-# --- Endpoints ---
+# --- User CRUD Endpoints ---
+
+@app.get("/api/users", response_model=List[UserSchema])
+async def read_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User))
+    users = result.scalars().all()
+    return users
+
+@app.get("/api/users/{user_id}", response_model=UserSchema)
+async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalars().first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
+@app.post("/api/users", response_model=UserSchema)
+async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name
+    )
+    db.add(db_user)
+    try:
+        await db.commit()
+        await db.refresh(db_user)
+        logger.info("New user created", extra={"user_id": db_user.id, "username": db_user.username})
+        return db_user
+    except IntegrityError as e:
+        await db.rollback()
+        error_detail = "Username or email already exists."
+        if "username" in str(e.orig):
+            error_detail = "Username already exists."
+        elif "email" in str(e.orig):
+            error_detail = "Email already exists."
+        raise HTTPException(status_code=400, detail=error_detail)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
+
+@app.put("/api/users/{user_id}", response_model=UserSchema)
+async def update_user(user_id: int, user: UserCreate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalars().first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db_user.username = user.username
+    db_user.email = user.email
+    db_user.full_name = user.full_name
+    
+    try:
+        await db.commit()
+        await db.refresh(db_user)
+        logger.info("User updated", extra={"user_id": user_id})
+        return db_user
+    except IntegrityError as e:
+        await db.rollback()
+        error_detail = "Username or email already exists."
+        if "username" in str(e.orig):
+            error_detail = "Username already exists."
+        elif "email" in str(e.orig):
+            error_detail = "Email already exists."
+        raise HTTPException(status_code=400, detail=error_detail)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
+
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalars().first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(db_user)
+    await db.commit()
+    logger.info("User deleted", extra={"user_id": user_id})
+    return {"message": "User deleted"}
 
 @app.post("/api/hello", response_model=GreetingResponse)
 async def hello(request: GreetingRequest):
-    logger.info(f"Greeting request: name={request.name}")
+    logger.info(f"Greeting request", extra={"user_name": request.name})
     return GreetingResponse(
         message=f"Hello {request.name}",
         timestamp=datetime.utcnow().isoformat() + "Z"
@@ -90,7 +208,7 @@ async def status():
     logger.info("Status check requested via /status command")
 
     # System metrics via psutil
-    cpu = psutil.cpu_percent(interval=0.5)
+    cpu = psutil.cpu_percent(interval=0.1)
     ram = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
 
@@ -112,9 +230,16 @@ async def status():
     )
 
 @app.get("/api/health", response_model=HealthResponse)
-async def health():
-    """Simple health check endpoint for pipeline verification."""
+async def health(db: AsyncSession = Depends(get_db)):
+    """Health check endpoint for pipeline verification."""
+    db_status = "ok"
+    try:
+        await db.execute(select(1))
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
     return HealthResponse(
         status="ok",
+        db_status=db_status,
         timestamp=datetime.utcnow().isoformat() + "Z"
     )

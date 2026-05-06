@@ -27,7 +27,7 @@ WORKDIR /app
 RUN addgroup --system appgroup && adduser --system --group appuser
 
 COPY --from=builder /install /usr/local
-COPY main.py /app/
+COPY . /app/
 
 RUN chown -R appuser:appgroup /app
 USER appuser

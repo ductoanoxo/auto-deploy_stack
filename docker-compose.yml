@@ -11,6 +11,8 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     group_add:
       - "999"
+    env_file:
+      - .env
     restart: always
 
   frontend:

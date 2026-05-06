@@ -6,7 +6,7 @@
 
 ## Phase 1 — Infrastructure Setup (EC2 + Docker Swarm)
 
-- [ ] Provision EC2 instance (`c7i-flex.large`)
+- [] Provision EC2 instance (`c7i-flex.large`)
   - [ ] Cấu hình Security Groups (mở port: 22, 80, 443, 8080, 3000, 9090)
   - [ ] Gắn Elastic IP để có IP tĩnh
 - [ ] Cài đặt Docker + Docker Compose trên EC2
@@ -31,8 +31,8 @@
   - [ ] Build Docker image
   - [ ] Push lên Docker Hub / ECR
   - [ ] Deploy service lên Docker Swarm (`docker service update`)
-- [ ] Cấu hình Telegram notification từ Jenkins
-  - [ ] Notify khi build pass / fail / deploy thành công
+- [x] Cấu hình Telegram notification từ Jenkins
+  - [x] Notify khi build pass / fail / deploy thành công
 
 ---
 

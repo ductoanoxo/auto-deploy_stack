@@ -77,6 +77,24 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                def status = currentBuild.currentResult
+                def emoji = status == 'SUCCESS' ? '✅' : '❌'
+                def message = """
+${emoji} *Jenkins Build Alert*
+*Project:* ${env.JOB_NAME}
+*Build:* #${env.BUILD_NUMBER}
+*Status:* ${status}
+*URL:* ${env.BUILD_URL}
+""".trim()
+                
+                withCredentials([string(credentialsId: 'telegram-bot-token', variable: 'TOKEN'),
+                                 string(credentialsId: 'telegram-chat-id', variable: 'CHAT_ID')]) {
+                    sh "curl -s -X POST https://api.telegram.org/bot${TOKEN}/sendMessage -d chat_id=${CHAT_ID} -d parse_mode=Markdown -d text='${message}'"
+                }
+            }
+        }
         success {
             echo 'Pipeline finished successfully!'
         }
