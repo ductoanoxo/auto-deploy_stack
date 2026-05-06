@@ -1,6 +1,6 @@
 # 🚀 Jenkins CI/CD Pipeline Demo
 
-![Project Banner](/home/traductoan/.gemini/antigravity/brain/62f36ad1-ee68-4614-b867-10b3abab34d2/project_banner_1777961552317.png)
+![Project Banner](/image/inforgraphics.png)
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
