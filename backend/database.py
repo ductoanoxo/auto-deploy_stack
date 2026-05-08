@@ -11,8 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 # The user provided postgresql://... which we need to convert to postgresql+asyncpg://...
-# Lấy từ biến môi trường, không để fallback chứa mật khẩu
+# Lấy từ biến môi trường, nếu không có (như lúc chạy Test) thì dùng tạm sqlite
 DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
