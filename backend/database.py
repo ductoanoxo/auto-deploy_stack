@@ -11,7 +11,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # The user provided postgresql://... which we need to convert to postgresql+asyncpg://...
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres.vmbynsnwpmydsttxgsmv:[YOUR-PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres")
+# Lấy từ biến môi trường, không để fallback chứa mật khẩu
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)

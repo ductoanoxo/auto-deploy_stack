@@ -12,7 +12,8 @@ const UserList = () => {
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState(null);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    // Tự động lấy IP/Domain của server hiện tại, mặc định dùng port 8000 cho API
+    const API_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000/api`;
 
     useEffect(() => {
         fetchUsers();
