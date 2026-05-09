@@ -57,7 +57,7 @@ pipeline {
                         export TAG=${TAG}
                         if [ -f .env ]; then
                             set -a
-                            . .env
+                            . ./.env
                             set +a
                         fi
                         
