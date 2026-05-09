@@ -57,9 +57,6 @@ pipeline {
                     echo "Deploying to Docker Swarm Cluster..."
                     // --resolve-image always: Bắt buộc Swarm phải check và pull image mới nhất từ Registry
                     sh "docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
-                    // Force Swarm to pull and restart with the new image
-                    sh "docker service update --force auto-deploy_stack_backend"
-                    sh "docker service update --force auto-deploy_stack_frontend"
                 }
             }
         }
