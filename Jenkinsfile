@@ -61,14 +61,21 @@ pipeline {
             steps {
                 script {
                     echo "Running Health Check on ${PROJECT_SERVER_IP}..."
-                    // Tăng thời gian chờ để Swarm kịp Pull Image và khởi động
-                    sh 'sleep 40'
+                    // Wait for Swarm to stabilize
+                    sleep 30
                     
-                    // Verify backend is running (Sửa localhost thành IP Project)
-                    sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
-                    echo 'Health check passed!'
+                    retry(3) {
+                        try {
+                            sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
+                            echo 'Health check passed!'
+                        } catch (Exception e) {
+                            echo "Health check failed, retrying in 10s... (Error: ${e.message})"
+                            sleep 10
+                            error "Backend not reachable on ${PROJECT_SERVER_IP}:8000"
+                        }
+                    }
                     
-                    // Verify ChatOps /status endpoint can reach Docker
+                    // Verify Status endpoint
                     sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/status"
                     echo 'Status endpoint verified!'
                 }

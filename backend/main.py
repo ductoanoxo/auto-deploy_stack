@@ -80,10 +80,18 @@ class HealthResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup():
+    logger.info("Starting up backend application...")
     # Create tables in database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables created/verified")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created/verified successfully")
+    except Exception as e:
+        logger.error(f"FATAL: Could not initialize database: {e}", extra={"error": str(e)})
+        # We don't raise here so the app can at least start and serve health checks
+        # even if it's in a broken state, which helps with debugging.
+        # But in some cases, it might be better to crash.
+        pass
 
 # --- Helper ---
 
