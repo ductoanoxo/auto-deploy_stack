@@ -11,6 +11,8 @@ services:
     env_file:
       - .env
     user: root
+    networks:
+      - stack_network
     deploy:
       placement:
         constraints:
@@ -25,9 +27,15 @@ services:
       - "80:80"
     depends_on:
       - backend
+    networks:
+      - stack_network
     deploy:
       placement:
         constraints:
           - node.role == worker
       restart_policy:
         condition: on-failure
+
+networks:
+  stack_network:
+    driver: overlay
