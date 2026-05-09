@@ -8,6 +8,7 @@ pipeline {
         SSH_CREDENTIAL_ID = 'project-server-ssh'
         DOCKER_HUB_USER = 'toantra349'
         DOCKER_COMPOSE_VERSION = 'v2'
+        TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -31,7 +32,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker Images...'
-                    sh 'docker compose build --no-cache'
+                    sh 'TAG=${TAG} docker compose build'
                 }
             }
         }
@@ -39,11 +40,9 @@ pipeline {
             steps {
                 script {
                     echo 'Pushing images to Docker Hub...'
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
-                        // docker compose build đã tag đúng tên từ docker-compose.yml
-                        // KHÔNG dùng docker tag vì nó có thể ghi đè image mới bằng image cũ đã cache
-                        sh "docker push ${DOCKER_HUB_USER}/backend:latest"
-                        sh "docker push ${DOCKER_HUB_USER}/frontend:latest"
+                        // docker compose build đã tag đúng tên và số build từ docker-compose.yml
+                        sh "docker push ${DOCKER_HUB_USER}/backend:${TAG}"
+                        sh "docker push ${DOCKER_HUB_USER}/frontend:${TAG}"
                     }
                 }
             }
@@ -51,9 +50,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    echo "Deploying to Docker Swarm Cluster..."
-                    // --resolve-image always: Bắt buộc Swarm phải check và pull image mới nhất từ Registry
-                    sh "docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
+                    echo "Deploying to Docker Swarm Cluster (Version: ${TAG})..."
+                    // Truyền biến TAG để Swarm biết chính xác Image version nào cần pull
+                    sh "TAG=${TAG} docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
                 }
             }
         }

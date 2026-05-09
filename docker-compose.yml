@@ -3,7 +3,7 @@ version: "3.9"
 services:
   backend:
     build: ./backend
-    image: toantra349/backend:latest
+    image: ${DOCKER_HUB_USER}/backend:${TAG:-latest}
     ports:
       - "8000:8000"
     volumes:
@@ -22,7 +22,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: toantra349/frontend:latest
+    image: ${DOCKER_HUB_USER}/frontend:${TAG:-latest}
     ports:
       - "80:80"
     depends_on:
