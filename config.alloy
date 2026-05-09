@@ -1,4 +1,4 @@
- 1. DISCOVERY DOCKER
+// 1. DISCOVERY DOCKER
 discovery.docker "linux" {
   host = "unix:///var/run/docker.sock"
 }
