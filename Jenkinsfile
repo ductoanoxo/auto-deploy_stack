@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Thay bằng IP Private của máy Project 
-        PROJECT_SERVER_IP = '172.31.95.223'
+        PROJECT_SERVER_IP = 'localhost'
         // Credential ID vừa tạo trong Jenkins Dashboard
         SSH_CREDENTIAL_ID = 'project-server-ssh'
         DOCKER_HUB_USER = 'toantra349'
