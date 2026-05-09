@@ -19,7 +19,7 @@ prometheus.relabel "system" {
   }
 }
 
-// DISCOVERY BACKEND
+// SCRAPE BACKEND APP METRICS (if backend has /metrics)
 discovery.docker "backend" {
   host = "unix:///var/run/docker.sock"
   filter {
@@ -28,18 +28,20 @@ discovery.docker "backend" {
   }
 }
 
-// SCRAPE BACKEND APP METRICS
 prometheus.scrape "backend" {
   targets    = discovery.docker.backend.targets
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
-// DISCOVERY CADVISOR
+// SCRAPE CADVISOR METRICS
 discovery.docker "cadvisor" {
   host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.swarm.service.name=auto-deploy_stack_cadvisor"]
+  }
 }
 
-// SCRAPE CADVISOR METRICS
 prometheus.scrape "cadvisor" {
   targets    = discovery.docker.cadvisor.targets
   forward_to = [prometheus.relabel.cadvisor.receiver]
@@ -53,6 +55,20 @@ prometheus.relabel "cadvisor" {
     source_labels = ["__meta_docker_container_label_com_docker_swarm_service_name"]
     target_label  = "name"
   }
+}
+
+// SCRAPE SWARM EXPORTER METRICS
+discovery.docker "swarm_exporter" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.swarm.service.name=auto-deploy_stack_swarm-exporter"]
+  }
+}
+
+prometheus.scrape "swarm_exporter" {
+  targets    = discovery.docker.swarm_exporter.targets
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
 prometheus.remote_write "grafanacloud" {
@@ -134,4 +150,3 @@ otelcol.exporter.otlp "grafanacloud" {
     auth     = otelcol.auth.basic.grafanacloud.handler
   }
 }
-
