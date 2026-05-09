@@ -24,8 +24,7 @@ services:
       start_period: 60s
     deploy:
       placement:
-        constraints:
-          - node.role == worker
+        max_replicas_per_node: 1
       restart_policy:
         condition: on-failure
 
@@ -40,13 +39,13 @@ services:
       - stack_network
     deploy:
       placement:
-        constraints:
-          - node.role == worker
+        max_replicas_per_node: 1
       restart_policy:
         condition: on-failure
 
   alloy:
     image: grafana/alloy:latest
+    user: root
     configs:
       - source: alloy_config
         target: /etc/alloy/config.alloy
@@ -96,7 +95,7 @@ services:
           memory: 64M
 
   swarm-exporter:
-    image: digitalocean/prometheus-swarm-exporter:latest
+    image: jakubs22/docker-swarm-exporter:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:

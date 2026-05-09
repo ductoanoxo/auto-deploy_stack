@@ -56,13 +56,18 @@ pipeline {
                     sh """
                         export TAG=${TAG}
                         if [ -f .env ]; then
-                            export \$(cat .env | grep -v '^#' | xargs)
+                            set -a
+                            source .env
+                            set +a
                         fi
                         
                         # Tạo config mới từ file local (Swarm Config là bất biến nên dùng TAG để tạo version mới)
                         docker config create alloy_config_v${TAG} config.alloy || true
                         
                         docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack
+                        
+                        # Dọn dẹp Docker Image cũ và rác hệ thống (giữ lại image trong 24h gần nhất)
+                        docker system prune -af --filter "until=24h"
                     """
                 }
             }
@@ -70,23 +75,23 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    echo "Running Health Check on ${PROJECT_SERVER_IP}..."
+                    echo "Running Health Check on localhost via Swarm Routing Mesh..."
                     // Wait for Swarm to stabilize
                     sleep 30
                     
                     retry(3) {
                         try {
-                            sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
+                            sh "curl -f http://localhost:8000/api/health"
                             echo 'Health check passed!'
                         } catch (Exception e) {
                             echo "Health check failed, retrying in 10s... (Error: ${e.message})"
                             sleep 10
-                            error "Backend not reachable on ${PROJECT_SERVER_IP}:8000"
+                            error "Backend not reachable on localhost:8000"
                         }
                     }
                     
                     // Verify Status endpoint
-                    sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/status"
+                    sh "curl -f http://localhost:8000/api/status"
                     echo 'Status endpoint verified!'
                 }
             }

@@ -82,11 +82,11 @@ prometheus.scrape "swarm_exporter" {
 prometheus.relabel "swarm_exporter" {
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
   
-  // Ép cổng 4433 cho Swarm Exporter
+  // Ép cổng 9000 cho Swarm Exporter
   rule {
     source_labels = ["__address__"]
     regex         = "(.*):.*"
-    replacement   = "$1:4433"
+    replacement   = "$1:9000"
     target_label  = "__address__"
   }
 }
