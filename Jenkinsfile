@@ -22,7 +22,7 @@ pipeline {
                 script {
                     echo 'Running Backend Tests...'
                     // Build the tester stage from multi-stage Dockerfile
-                    sh 'docker build --target tester -t backend-tester ./backend'
+                    sh 'docker build --no-cache --target tester -t backend-tester ./backend'
                 }
             }
         }
@@ -31,7 +31,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker Images...'
-                    sh 'docker compose build'
+                    sh 'docker compose build --no-cache'
                 }
             }
         }
@@ -57,6 +57,9 @@ pipeline {
                     echo "Deploying to Docker Swarm Cluster..."
                     // --resolve-image always: Bắt buộc Swarm phải check và pull image mới nhất từ Registry
                     sh "docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
+                    // Force Swarm to pull and restart with the new image
+                    sh "docker service update --force auto-deploy_stack_backend"
+                    sh "docker service update --force auto-deploy_stack_frontend"
                 }
             }
         }
