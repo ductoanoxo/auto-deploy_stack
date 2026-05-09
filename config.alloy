@@ -1,4 +1,4 @@
-// 1. DISCOVERY DOCKER (Tìm container)
+ 1. DISCOVERY DOCKER
 discovery.docker "linux" {
   host = "unix:///var/run/docker.sock"
 }
@@ -13,10 +13,10 @@ prometheus.scrape "system" {
 
 prometheus.remote_write "grafanacloud" {
   endpoint {
-    url = env("GRAFANA_PROMETHEUS_URL")
+    url = "https://prometheus-prod-37-prod-ap-southeast-1.grafana.net/api/prom/push"
     basic_auth {
-      username = env("GRAFANA_PROMETHEUS_USER")
-      password = env("GRAFANA_CLOUD_TOKEN")
+      username = "3173960"
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
     }
   }
 }
@@ -38,10 +38,10 @@ loki.source.docker "all_containers" {
 
 loki.write "grafanacloud" {
   endpoint {
-    url = env("GRAFANA_LOKI_URL")
+    url = "https://logs-prod-020.grafana.net/loki/api/v1/push"
     basic_auth {
-      username = env("GRAFANA_LOKI_USER")
-      password = env("GRAFANA_CLOUD_TOKEN")
+      username = "1582655"
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
     }
   }
 }
@@ -57,8 +57,8 @@ otelcol.receiver.otlp "default" {
 }
 
 otelcol.auth.basic "grafanacloud" {
-  username = env("GRAFANA_TEMPO_USER")
-  password = env("GRAFANA_CLOUD_TOKEN")
+  username = "1576956"
+  password = sys.env("GRAFANA_CLOUD_TOKEN")
 }
 
 otelcol.exporter.otlp "grafanacloud" {
@@ -67,3 +67,4 @@ otelcol.exporter.otlp "grafanacloud" {
     auth     = otelcol.auth.basic.grafanacloud.handler
   }
 }
+
