@@ -2,6 +2,11 @@ pipeline {
     agent any
 
     environment {
+        // Thay bằng IP Private của máy Project 
+        PROJECT_SERVER_IP = '172.31.95.223'
+        // Credential ID vừa tạo trong Jenkins Dashboard
+        SSH_CREDENTIAL_ID = 'project-server-ssh'
+        DOCKER_HUB_USER = 'toantra349'
         DOCKER_COMPOSE_VERSION = 'v2'
     }
 
@@ -35,13 +40,13 @@ pipeline {
                 script {
                     echo 'Pushing images to Docker Hub...'
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
-                        // Tag và Push Backend (Dùng tên image mặc định của docker-compose)
-                        sh 'docker tag auto-deploy_stack-backend toantra349/backend:latest'
-                        sh 'docker push toantra349/backend:latest'
+                        // Tag và Push Backend
+                        sh "docker tag auto-deploy_stack-backend ${DOCKER_HUB_USER}/backend:latest"
+                        sh "docker push ${DOCKER_HUB_USER}/backend:latest"
                         
                         // Tag và Push Frontend
-                        sh 'docker tag auto-deploy_stack-frontend toantra349/frontend:latest'
-                        sh 'docker push toantra349/frontend:latest'
+                        sh "docker tag auto-deploy_stack-frontend ${DOCKER_HUB_USER}/frontend:latest"
+                        sh "docker push ${DOCKER_HUB_USER}/frontend:latest"
                     }
                 }
             }
@@ -49,27 +54,26 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    echo 'Deploying Application...'
-                    // Restart containers with the new images
-                    sh 'docker compose down'
-                    sh 'docker compose up -d'
-                    sh 'docker image prune -f'
+                    echo "Deploying to Docker Swarm Cluster..."
+                    // Swarm Manager (Jenkins) sẽ tự ra lệnh cho Worker (Project)
+                    // --with-registry-auth giúp worker có thể pull image từ private registry/hub (nếu cần login)
+                    sh "docker stack deploy --with-registry-auth -c docker-compose.yml auto-deploy_stack"
                 }
             }
         }
         stage('Health Check') {
             steps {
                 script {
-                    echo 'Running Health Check...'
+                    echo "Running Health Check on ${PROJECT_SERVER_IP}..."
                     // Wait for containers to fully start
                     sh 'sleep 10'
                     
-                    // Verify backend is running
-                    sh 'curl -f http://localhost:8000/api/health'
+                    // Verify backend is running (Sửa localhost thành IP Project)
+                    sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
                     echo 'Health check passed!'
                     
                     // Verify ChatOps /status endpoint can reach Docker
-                    sh 'curl -f http://localhost:8000/api/status'
+                    sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/status"
                     echo 'Status endpoint verified!'
                 }
             }

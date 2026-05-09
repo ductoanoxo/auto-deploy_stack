@@ -3,23 +3,32 @@ version: "3.9"
 services:
   backend:
     build: ./backend
-    container_name: backend
+    image: toantra349/backend:latest
     ports:
       - "8000:8000"
     volumes:
-      - "./backend:/app"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     group_add:
       - "999"
     env_file:
       - .env
-    restart: always
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
 
   frontend:
     build: ./frontend
-    container_name: frontend
+    image: toantra349/frontend:latest
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
       - backend
-    restart: always
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
