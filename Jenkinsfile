@@ -52,9 +52,6 @@ pipeline {
             steps {
                 script {
                     echo "Deploying to Docker Swarm Cluster..."
-                    // Xóa trạng thái "paused" từ các lần deploy thất bại trước
-                    sh "docker service update --rollback auto-deploy_stack_backend || true"
-                    sh "docker service update --rollback auto-deploy_stack_frontend || true"
                     // --resolve-image always: Bắt buộc Swarm phải check và pull image mới nhất từ Registry
                     sh "docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
                 }
