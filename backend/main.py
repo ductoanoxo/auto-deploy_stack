@@ -53,13 +53,6 @@ class UserSchema(BaseModel):
     class Config:
         from_attributes = True
 
-class GreetingRequest(BaseModel):
-    name: str
-
-class GreetingResponse(BaseModel):
-    message: str
-    timestamp: str
-
 class ContainerInfo(BaseModel):
     name: str
     status: str
@@ -193,14 +186,6 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
     logger.info("User deleted", extra={"user_id": user_id})
     return {"message": "User deleted"}
-
-@app.post("/api/hello", response_model=GreetingResponse)
-async def hello(request: GreetingRequest):
-    logger.info(f"Greeting request", extra={"user_name": request.name})
-    return GreetingResponse(
-        message=f"Hello {request.name}",
-        timestamp=datetime.utcnow().isoformat() + "Z"
-    )
 
 @app.get("/api/status", response_model=SystemStatus)
 async def status():
