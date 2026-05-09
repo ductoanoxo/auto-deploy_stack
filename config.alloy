@@ -34,11 +34,18 @@ prometheus.scrape "backend" {
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
+// DISCOVERY CADVISOR
+discovery.docker "cadvisor" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.swarm.service.name=auto-deploy_stack_cadvisor"]
+  }
+}
+
 // SCRAPE CADVISOR METRICS
 prometheus.scrape "cadvisor" {
-  targets = [
-    {"__address__" = "cadvisor:8080"},
-  ]
+  targets    = discovery.docker.cadvisor.targets
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
