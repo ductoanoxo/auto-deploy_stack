@@ -11,6 +11,14 @@ prometheus.scrape "system" {
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
+// SCRAPE BACKEND APP METRICS
+prometheus.scrape "backend" {
+  targets = [
+    {"__address__" = "backend:8000"},
+  ]
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+}
+
 prometheus.remote_write "grafanacloud" {
   endpoint {
     url = "https://prometheus-prod-37-prod-ap-southeast-1.grafana.net/api/prom/push"
