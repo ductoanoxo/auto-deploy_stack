@@ -55,9 +55,8 @@ pipeline {
             steps {
                 script {
                     echo "Deploying to Docker Swarm Cluster..."
-                    // Swarm Manager (Jenkins) sẽ tự ra lệnh cho Worker (Project)
-                    // --with-registry-auth giúp worker có thể pull image từ private registry/hub (nếu cần login)
-                    sh "docker stack deploy --with-registry-auth -c docker-compose.yml auto-deploy_stack"
+                    // --resolve-image always: Bắt buộc Swarm phải check và pull image mới nhất từ Registry
+                    sh "docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack"
                 }
             }
         }
@@ -65,8 +64,8 @@ pipeline {
             steps {
                 script {
                     echo "Running Health Check on ${PROJECT_SERVER_IP}..."
-                    // Wait for containers to fully start
-                    sh 'sleep 10'
+                    // Tăng thời gian chờ để Swarm kịp Pull Image và khởi động
+                    sh 'sleep 40'
                     
                     // Verify backend is running (Sửa localhost thành IP Project)
                     sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
