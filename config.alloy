@@ -37,16 +37,22 @@ prometheus.scrape "backend" {
 // DISCOVERY CADVISOR
 discovery.docker "cadvisor" {
   host = "unix:///var/run/docker.sock"
-  filter {
-    name   = "label"
-    values = ["com.docker.swarm.service.name=auto-deploy_stack_cadvisor"]
-  }
 }
 
 // SCRAPE CADVISOR METRICS
 prometheus.scrape "cadvisor" {
   targets    = discovery.docker.cadvisor.targets
+  forward_to = [prometheus.relabel.cadvisor.receiver]
+}
+
+prometheus.relabel "cadvisor" {
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
+  
+  // Ánh xạ nhãn com.docker.swarm.service.name thành name cho dashboard
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_swarm_service_name"]
+    target_label  = "name"
+  }
 }
 
 prometheus.remote_write "grafanacloud" {
