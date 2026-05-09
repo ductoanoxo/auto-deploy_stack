@@ -1,0 +1,69 @@
+// ==========================================
+// 1. METRICS (PROMETHEUS) - Thu thập chỉ số hệ thống
+// ==========================================
+prometheus.exporter.unix "node" { }
+
+prometheus.scrape "system" {
+  targets    = prometheus.exporter.unix.node.targets
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_PROMETHEUS_URL")
+    basic_auth {
+      username = env("GRAFANA_PROMETHEUS_USER")
+      password = env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}
+
+// ==========================================
+// 2. LOGS (LOKI) - Thu thập log từ Docker
+// ==========================================
+loki.relabel "docker" {
+  forward_to = [loki.write.grafana_cloud.receiver]
+  rule {
+    target_label = "job"
+    replacement  = "docker_logs"
+  }
+}
+
+loki.source.docker "all_containers" {
+  host       = "unix:///var/run/docker.sock"
+  forward_to = [loki.relabel.docker.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_LOKI_URL")
+    basic_auth {
+      username = env("GRAFANA_LOKI_USER")
+      password = env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}
+
+// ==========================================
+// 3. TRACES (TEMPO) - Thu thập dấu vết request
+// ==========================================
+otelcol.receiver.otlp "default" {
+  grpc { endpoint = "0.0.0.0:4317" }
+  http { endpoint = "0.0.0.0:4318" }
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.auth.basic "tempo" {
+  username = env("GRAFANA_TEMPO_USER")
+  password = env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = env("GRAFANA_TEMPO_URL")
+    auth     = otelcol.auth.basic.tempo.handler
+  }
+}

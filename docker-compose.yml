@@ -10,6 +10,9 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     env_file:
       - .env
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_SERVICE_NAME=backend-service
     user: root
     networks:
       - stack_network
@@ -41,6 +44,36 @@ services:
           - node.role == worker
       restart_policy:
         condition: on-failure
+
+  alloy:
+    image: grafana/alloy:latest
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host/root:ro,rslave
+    command: [
+      "run",
+      "--allow-loading-from-ports",
+      "/etc/alloy/config.alloy"
+    ]
+    environment:
+      - GRAFANA_PROMETHEUS_URL=${GRAFANA_PROMETHEUS_URL}
+      - GRAFANA_PROMETHEUS_USER=${GRAFANA_PROMETHEUS_USER}
+      - GRAFANA_LOKI_URL=${GRAFANA_LOKI_URL}
+      - GRAFANA_LOKI_USER=${GRAFANA_LOKI_USER}
+      - GRAFANA_TEMPO_URL=${GRAFANA_TEMPO_URL}
+      - GRAFANA_TEMPO_USER=${GRAFANA_TEMPO_USER}
+      - GRAFANA_CLOUD_TOKEN=${GRAFANA_CLOUD_TOKEN}
+    ports:
+      - "4317:4317" # gRPC Tracing
+      - "4318:4318" # HTTP Tracing
+    networks:
+      - stack_network
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 384M
 
 networks:
   stack_network:

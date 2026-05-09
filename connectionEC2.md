@@ -138,5 +138,19 @@ Trong quá trình thiết lập, bạn có thể gặp các lỗi sau:
 - **Lưu ý về Source:** Khi mở port trên máy Jenkins, phần **Source** phải là **Security Group ID của máy Project** (hoặc dải IP nội bộ `172.31.0.0/16`). Nếu nhầm lẫn giữa SG của 2 máy, kết nối sẽ bị chặn (Timeout).
 - **Cách sửa:** Đảm bảo cả 2 máy đều cho phép các port này từ máy kia. Dùng lệnh `nc -zv <IP_MANAGER> 2377` để kiểm tra thông mạch trước khi join.
 
-### ❌ Lỗi 4: Nhầm lẫn địa chỉ IP
-- **Lưu ý:** Luôn dùng **dấu chấm (`.`)** cho IP, không dùng dấu gạch ngang (`-`). Nên dùng **IP Private** khi các máy cùng VPC để tối ưu tốc độ và chi phí.
+### ❌ Lỗi 5: Backend Crash khi khởi động (Database Connection)
+- **Nguyên nhân:** Backend cố gắng tạo bảng dữ liệu ngay khi khởi động nhưng Database (Supabase) chưa sẵn sàng hoặc kết nối bị từ chối, dẫn đến container bị sập (Exit 1).
+- **Cách sửa:** Bao bọc lệnh khởi tạo database (`Base.metadata.create_all`) trong khối `try-except` và ghi log lỗi thay vì để ứng dụng sập. Điều này giúp container vẫn "sống" để trả về kết quả Health Check.
+
+### ❌ Lỗi 6: Docker Swarm giết Container liên tục (Exit 0/Shutdown)
+- **Nguyên nhân:** Lỗi cú pháp trong lệnh `HEALTHCHECK` của `Dockerfile` (thừa dấu cách sau dấu gạch chéo `\ `). Docker Swarm hiểu sai lệnh và coi container luôn ở trạng thái "Unhealthy", dẫn đến việc tự động tắt container cũ sau khi hết `start-period`.
+- **Dấu hiệu:** `docker service ps` báo trạng thái `Shutdown / Complete` liên tục mà không có lỗi cụ thể.
+- **Cách sửa:** Kiểm tra kỹ khoảng trắng trong `Dockerfile` và đồng bộ cấu hình `healthcheck` vào file `docker-compose.yml`.
+
+### ❌ Lỗi 7: Jenkins không thể Health Check tới Worker Node (Connection Refused)
+- **Nguyên nhân:** Security Group của máy Project chưa mở port 8000 cho máy Jenkins, hoặc cấu hình IP đích bị sai.
+- **Giải pháp tối ưu:** Sử dụng **Docker Swarm Routing Mesh**. Thay vì gọi tới IP thật của máy Project, hãy gọi tới `http://localhost:8000` ngay trên máy Jenkins. Swarm sẽ tự động điều hướng gói tin tới đúng container đang chạy ở bất kỳ đâu trong cụm.
+
+### ❌ Lỗi 8: Docker Compose Validation Error (healthcheck)
+- **Nguyên nhân:** Đặt khối `healthcheck` sai vị trí (bên trong khối `deploy`).
+- **Cách sửa:** `healthcheck` phải là thuộc tính trực tiếp của **Service**, nằm cùng cấp với `image`, `ports`, và `volumes`.

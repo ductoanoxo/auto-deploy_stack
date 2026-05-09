@@ -13,6 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from database import engine, Base, get_db
 from models import User
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 # Configure structured JSON logging
 logger = logging.getLogger()
@@ -35,6 +36,9 @@ app.add_middleware(
 
 # Initialize Prometheus Instrumentator
 Instrumentator().instrument(app).expose(app)
+
+# Initialize OpenTelemetry Tracing
+FastAPIInstrumentor.instrument_app(app)
 
 # --- Models & Schemas ---
 
