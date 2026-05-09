@@ -8,13 +8,29 @@ prometheus.exporter.unix "node" { }
 
 prometheus.scrape "system" {
   targets    = prometheus.exporter.unix.node.targets
+  forward_to = [prometheus.relabel.system.receiver]
+}
+
+prometheus.relabel "system" {
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
+  rule {
+    replacement  = sys.env("NODE_NAME")
+    target_label = "nodename"
+  }
 }
 
 // SCRAPE BACKEND APP METRICS
 prometheus.scrape "backend" {
   targets = [
     {"__address__" = "backend:8000"},
+  ]
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+}
+
+// SCRAPE CADVISOR METRICS
+prometheus.scrape "cadvisor" {
+  targets = [
+    {"__address__" = "cadvisor:8080"},
   ]
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
