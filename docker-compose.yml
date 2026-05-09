@@ -48,7 +48,7 @@ services:
   alloy:
     image: grafana/alloy:latest
     configs:
-      - source: alloy_config_v${TAG:-1}
+      - source: alloy_config
         target: /etc/alloy/config.alloy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -77,7 +77,8 @@ services:
           memory: 384M
 
 configs:
-  alloy_config_v${TAG:-1}:
+  alloy_config:
+    name: alloy_config_v${TAG:-1}
     external: true
 
 networks:
