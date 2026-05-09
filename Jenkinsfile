@@ -40,6 +40,7 @@ pipeline {
             steps {
                 script {
                     echo 'Pushing images to Docker Hub...'
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
                         // docker compose build đã tag đúng tên và số build từ docker-compose.yml
                         sh "docker push ${DOCKER_HUB_USER}/backend:${TAG}"
                         sh "docker push ${DOCKER_HUB_USER}/frontend:${TAG}"
