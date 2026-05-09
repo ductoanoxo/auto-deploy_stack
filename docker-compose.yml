@@ -47,8 +47,10 @@ services:
 
   alloy:
     image: grafana/alloy:latest
+    configs:
+      - source: alloy_config_v${TAG:-1}
+        target: /etc/alloy/config.alloy
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/host/root:ro,rslave
     command: [
@@ -73,6 +75,10 @@ services:
       resources:
         limits:
           memory: 384M
+
+configs:
+  alloy_config_v${TAG:-1}:
+    external: true
 
 networks:
   stack_network:

@@ -52,12 +52,16 @@ pipeline {
             steps {
                 script {
                     echo "Deploying to Docker Swarm Cluster (Version: ${TAG})..."
-                    // Nạp biến từ .env và truyền TAG
+                    // Nạp biến từ .env và tạo Docker Config mới
                     sh """
                         export TAG=${TAG}
                         if [ -f .env ]; then
                             export \$(cat .env | grep -v '^#' | xargs)
                         fi
+                        
+                        # Tạo config mới từ file local (Swarm Config là bất biến nên dùng TAG để tạo version mới)
+                        docker config create alloy_config_v${TAG} config.alloy || true
+                        
                         docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml auto-deploy_stack
                     """
                 }
