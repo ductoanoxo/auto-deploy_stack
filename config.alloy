@@ -1,14 +1,17 @@
-// ==========================================
-// 1. METRICS (PROMETHEUS) - Thu thập chỉ số hệ thống
-// ==========================================
+// 1. DISCOVERY DOCKER (Tìm container)
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 2. METRICS (PROMETHEUS)
 prometheus.exporter.unix "node" { }
 
 prometheus.scrape "system" {
   targets    = prometheus.exporter.unix.node.targets
-  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
-prometheus.remote_write "grafana_cloud" {
+prometheus.remote_write "grafanacloud" {
   endpoint {
     url = env("GRAFANA_PROMETHEUS_URL")
     basic_auth {
@@ -18,11 +21,9 @@ prometheus.remote_write "grafana_cloud" {
   }
 }
 
-// ==========================================
-// 2. LOGS (LOKI) - Thu thập log từ Docker
-// ==========================================
+// 3. LOGS (LOKI)
 loki.relabel "docker" {
-  forward_to = [loki.write.grafana_cloud.receiver]
+  forward_to = [loki.write.grafanacloud.receiver]
   rule {
     target_label = "job"
     replacement  = "docker_logs"
@@ -31,10 +32,11 @@ loki.relabel "docker" {
 
 loki.source.docker "all_containers" {
   host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.linux.targets
   forward_to = [loki.relabel.docker.receiver]
 }
 
-loki.write "grafana_cloud" {
+loki.write "grafanacloud" {
   endpoint {
     url = env("GRAFANA_LOKI_URL")
     basic_auth {
@@ -44,26 +46,24 @@ loki.write "grafana_cloud" {
   }
 }
 
-// ==========================================
-// 3. TRACES (TEMPO) - Thu thập dấu vết request
-// ==========================================
+// 4. TRACES (TEMPO)
 otelcol.receiver.otlp "default" {
   grpc { endpoint = "0.0.0.0:4317" }
   http { endpoint = "0.0.0.0:4318" }
 
   output {
-    traces = [otelcol.exporter.otlp.tempo.input]
+    traces = [otelcol.exporter.otlp.grafanacloud.input]
   }
 }
 
-otelcol.auth.basic "tempo" {
+otelcol.auth.basic "grafanacloud" {
   username = env("GRAFANA_TEMPO_USER")
   password = env("GRAFANA_CLOUD_TOKEN")
 }
 
-otelcol.exporter.otlp "tempo" {
+otelcol.exporter.otlp "grafanacloud" {
   client {
-    endpoint = env("GRAFANA_TEMPO_URL")
-    auth     = otelcol.auth.basic.tempo.handler
+    endpoint = "tempo-prod-14-prod-ap-southeast-1.grafana.net:443"
+    auth     = otelcol.auth.basic.grafanacloud.handler
   }
 }
