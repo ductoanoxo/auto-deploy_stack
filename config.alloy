@@ -19,11 +19,18 @@ prometheus.relabel "system" {
   }
 }
 
+// DISCOVERY BACKEND
+discovery.docker "backend" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.swarm.service.name=auto-deploy_stack_backend"]
+  }
+}
+
 // SCRAPE BACKEND APP METRICS
 prometheus.scrape "backend" {
-  targets = [
-    {"__address__" = "backend:8000"},
-  ]
+  targets    = discovery.docker.backend.targets
   forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
