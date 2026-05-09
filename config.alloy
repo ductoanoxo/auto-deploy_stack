@@ -49,13 +49,13 @@ prometheus.remote_write "grafanacloud" {
 loki.relabel "docker" {
   forward_to = [loki.write.grafanacloud.receiver]
 
-  # Ưu tiên lấy tên Service của Swarm làm nhãn 'job'
+  // Ưu tiên lấy tên Service của Swarm làm nhãn "job"
   rule {
     source_labels = ["__meta_docker_container_label_com_docker_swarm_service_name"]
     target_label  = "job"
   }
 
-  # Nếu không phải service (container lẻ), lấy tên container làm 'job'
+  // Nếu không phải service (container lẻ), lấy tên container làm "job"
   rule {
     source_labels = ["job"]
     regex         = ""
