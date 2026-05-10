@@ -16,7 +16,7 @@ function App() {
           <main className="hero-content">
             <HeroBadge />
             
-            <h1 className="hero-title">DevOps Depzai Data Platform</h1>
+            <h1 className="hero-title">DevOps Depzainhatvutri Data Platform</h1>
             
             <p className="hero-subtitle">
               Manage your cloud assets in real-time. Simply fill out the form to easily manage your data directly onto the platform.
