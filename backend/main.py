@@ -37,7 +37,21 @@ app.add_middleware(
 # Initialize Prometheus Instrumentator
 Instrumentator().instrument(app).expose(app)
 
-# Initialize OpenTelemetry Tracing
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+import os
+
+# Configure OpenTelemetry Tracing
+provider = TracerProvider()
+# Read endpoint from env, default to Alloy HTTP port if not set
+otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://alloy:4318/v1/traces")
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
 FastAPIInstrumentor.instrument_app(app)
 
 # --- Models & Schemas ---
