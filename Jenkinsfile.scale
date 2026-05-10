@@ -97,9 +97,9 @@ pipeline {
                 def message = """
 ${emoji} *Auto-Scaling Alert*
 *Hành động:* ${actionLabel}
-*Stack:* \`${env.STACK_NAME}\`
-*Frontend:* \`${env.FRONTEND_SERVICE}\` → *${targetReplicas} replicas*
-*Backend:* \`${env.BACKEND_SERVICE}\` → *${targetReplicas} replicas*
+*Stack:* `${env.STACK_NAME}`
+*Frontend:* `${env.FRONTEND_SERVICE}` → *${targetReplicas} replicas*
+*Backend:* `${env.BACKEND_SERVICE}` → *${targetReplicas} replicas*
 *Trạng thái:* ✅ Thành công
 *Build:* #${env.BUILD_NUMBER}
 *URL:* ${env.BUILD_URL}
