@@ -53,8 +53,8 @@ prometheus.relabel "cadvisor" {
   // Ép cổng 8080 cho cAdvisor
   rule {
     source_labels = ["__address__"]
-    regex         = "(.*):.*"
-    replacement   = "$1:8080"
+    regex         = "([^:]+)(?::.*)?"
+    replacement   = "${1}:8080"
     target_label  = "__address__"
   }
 
@@ -85,8 +85,8 @@ prometheus.relabel "swarm_exporter" {
   // Ép cổng 9000 cho Swarm Exporter
   rule {
     source_labels = ["__address__"]
-    regex         = "(.*):.*"
-    replacement   = "$1:9000"
+    regex         = "([^:]+)(?::.*)?"
+    replacement   = "${1}:9000"
     target_label  = "__address__"
   }
 }
