@@ -42,13 +42,8 @@ discovery.docker "cadvisor" {
   }
 }
 
-prometheus.scrape "cadvisor" {
-  targets    = discovery.docker.cadvisor.targets
-  forward_to = [prometheus.relabel.cadvisor.receiver]
-}
-
-prometheus.relabel "cadvisor" {
-  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+discovery.relabel "cadvisor" {
+  targets = discovery.docker.cadvisor.targets
   
   // Ép cổng 8080 cho cAdvisor
   rule {
@@ -57,12 +52,11 @@ prometheus.relabel "cadvisor" {
     replacement   = "${1}:8080"
     target_label  = "__address__"
   }
+}
 
-  // Ánh xạ nhãn com.docker.swarm.service.name thành name cho dashboard
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_swarm_service_name"]
-    target_label  = "name"
-  }
+prometheus.scrape "cadvisor" {
+  targets    = discovery.relabel.cadvisor.output
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
 // SCRAPE SWARM EXPORTER METRICS
@@ -74,13 +68,8 @@ discovery.docker "swarm_exporter" {
   }
 }
 
-prometheus.scrape "swarm_exporter" {
-  targets    = discovery.docker.swarm_exporter.targets
-  forward_to = [prometheus.relabel.swarm_exporter.receiver]
-}
-
-prometheus.relabel "swarm_exporter" {
-  forward_to = [prometheus.remote_write.grafanacloud.receiver]
+discovery.relabel "swarm_exporter" {
+  targets = discovery.docker.swarm_exporter.targets
   
   // Ép cổng 9000 cho Swarm Exporter
   rule {
@@ -89,6 +78,11 @@ prometheus.relabel "swarm_exporter" {
     replacement   = "${1}:9000"
     target_label  = "__address__"
   }
+}
+
+prometheus.scrape "swarm_exporter" {
+  targets    = discovery.relabel.swarm_exporter.output
+  forward_to = [prometheus.remote_write.grafanacloud.receiver]
 }
 
 prometheus.remote_write "grafanacloud" {
