@@ -29,115 +29,6 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "color-background"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 0.1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "footer": {
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "grafanacloud-prom"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(docker_swarm_service_running_replicas, \"service\", \"$1\", \"service_name\", \"(.*)\")",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "Running",
-          "range": false,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "grafanacloud-prom"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(docker_swarm_service_desired_replicas, \"service\", \"$1\", \"service_name\", \"(.*)\")",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "Desired",
-          "range": false,
-          "refId": "B"
-        }
-      ],
-      "title": "🐳 Services & Replicas",
-      "transformations": [
-        {
-          "id": "seriesToColumns",
-          "options": {
-            "byField": "service_name"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "indexByName": {
-              "service_name": 0,
-              "Value #A": 1,
-              "Value #B": 2
-            },
-            "renameByName": {
-              "Value #A": "Running",
-              "Value #B": "Desired",
-              "service_name": "Service"
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "grafanacloud-prom"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -147,7 +38,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 0,
+            "fillOpacity": 10,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -177,19 +68,24 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
-        "y": 8
+        "y": 0
       },
-      "id": 2,
+      "id": 1,
       "options": {
         "legend": {
           "calcs": [],
@@ -208,13 +104,81 @@
             "type": "prometheus",
             "uid": "grafanacloud-prom"
           },
-          "expr": "sum(rate(container_cpu_usage_seconds_total[5m])) by (container_label_com_docker_swarm_service_name)",
-          "legendFormat": "{{container_label_com_docker_swarm_service_name}}",
+          "editorMode": "code",
+          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU Load: {{instance}}",
           "refId": "A"
         }
       ],
-      "title": "🧠 Container CPU Usage",
+      "title": "🖥️ System: CPU Usage",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "editorMode": "code",
+          "expr": "avg by (instance) (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100)",
+          "legendFormat": "Free RAM %",
+          "refId": "A"
+        }
+      ],
+      "title": "🧠 System: RAM Available %",
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -265,16 +229,15 @@
                 "value": null
               }
             ]
-          },
-          "unit": "bytes"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
+        "w": 8,
+        "x": 16,
+        "y": 0
       },
       "id": 3,
       "options": {
@@ -295,76 +258,44 @@
             "type": "prometheus",
             "uid": "grafanacloud-prom"
           },
-          "expr": "sum(container_memory_usage_bytes) by (container_label_com_docker_swarm_service_name)",
-          "legendFormat": "{{container_label_com_docker_swarm_service_name}}",
+          "expr": "sum(rate(http_requests_total[5m])) by (service)",
+          "legendFormat": "{{service}}",
           "refId": "A"
         }
       ],
-      "title": "🧠 Container RAM Usage",
+      "title": "🚀 App: Request Rate (ops/s)",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "grafanacloud-prom"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
+        "type": "tempo",
+        "uid": "grafanacloud-traces"
       },
       "gridPos": {
-        "h": 4,
-        "w": 24,
+        "h": 10,
+        "w": 12,
         "x": 0,
-        "y": 16
+        "y": 8
       },
-      "id": 4,
+      "id": 5,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
+        "serviceMap": {
+          "datasourceUid": "grafanacloud-prom"
+        }
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "grafanacloud-prom"
+            "type": "tempo",
+            "uid": "grafanacloud-traces"
           },
-          "expr": "sum(increase(container_restart_count[10m])) by (container_label_com_docker_swarm_service_name)",
-          "legendFormat": "Restarts (10m): {{container_label_com_docker_swarm_service_name}}",
+          "query": "{resource.service.name=\"backend-service\"}",
+          "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "🔥 Container Restart Count",
-      "type": "stat"
+      "title": "🔍 Trace Search: Backend Flow",
+      "type": "traces"
     },
     {
       "datasource": {
@@ -372,21 +303,21 @@
         "uid": "grafanacloud-logs"
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
-        "x": 0,
-        "y": 20
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 8
       },
-      "id": 5,
+      "id": 6,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
+        "prettifyLogMessage": true,
         "showCommonLabels": false,
         "showLabels": false,
         "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": false
+        "wrapLogMessage": true
       },
       "targets": [
         {
@@ -394,11 +325,11 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "{job=~\"auto-deploy_stack.+\"}",
+          "expr": "{job=~\"auto-deploy_stack_.*\"}",
           "refId": "A"
         }
       ],
-      "title": "📜 Service Logs",
+      "title": "📜 Live Container Logs",
       "type": "logs"
     }
   ],
@@ -406,20 +337,20 @@
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
-    "docker",
-    "swarm"
+    "DevOps",
+    "Stack"
   ],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Docker Swarm Dashboard",
-  "uid": "docker-swarm-dashboard",
-  "version": 1,
+  "title": "🚀 DevOps Full Stack Management",
+  "uid": "devops-stack-management",
+  "version": 2,
   "weekStart": ""
 }

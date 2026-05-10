@@ -93,6 +93,11 @@ prometheus.remote_write "grafanacloud" {
       password = sys.env("GRAFANA_CLOUD_TOKEN")
     }
   }
+
+  // Tự động gán nhãn nodename cho TOÀN BỘ metrics của máy này
+  external_labels = {
+    nodename = sys.env("NODE_NAME"),
+  }
 }
 
 // 3. LOGS (LOKI)
