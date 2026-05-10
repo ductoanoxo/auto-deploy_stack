@@ -78,21 +78,25 @@ Con số 2 là cấu hình "vàng" cho mức cơ bản vì nó tiết kiệm tà
 
 ## Kịch Bản 2: Self-Healing (Tự động phục hồi)
 
-**Mục tiêu:** Kiểm tra khả năng tự thay thế khi phát hiện một hoặc vài containers bị sập (crash, out of memory, bi kill tay). Swarm sẽ luôn đảm bảo thuộc tính `replicas` duy trì theo đúng cấu hình.
+**Mục tiêu:** Kiểm tra khả năng tự động thay thế khi phát hiện một hoặc vài containers bị sập (lỗi ứng dụng, hết RAM, hoặc lỡ tay kill). Hệ thống sẽ luôn đảm bảo được số lượng `replicas`.
 
-**Cách thực hiện:**
-1. **Bước 1:** Khởi chạy k6 bằng Docker để tạo traffic truy cập ổn định vào website.
-   ```bash
-   docker run --rm -i --network host grafana/k6 run - < load_test.js
-   ```
+**Cách thực hiện (Tùy chọn hiển thị):**
+*(Kịch bản này bạn có thể cắm 1 Terminal chạy K6 liên tục ở máy tính cá nhân để xem tác động trực tiếp đến người dùng. Hoặc đơn giản nhất, bạn dùng trực tiếp 1 màn hình EC2 là đủ).*
+
+1. **Bước 1:** SSH vào máy chủ EC2 quản lý Docker Swarm.
 2. **Bước 2:** Lấy ID của một container backend hoặc frontend đang chạy và Ép dừng (kill) nó:
    ```bash
+   # Tìm ID container của frontend
    docker ps
+   # Ép dừng container
    docker kill <container_id_của_frontend>
    ```
-3. **Đánh giá:** 
-   - Kiểm tra lịch sử service: `docker service ps <stack_name>_frontend`. Bạn sẽ thấy container vừa bị kill báo lỗi `Failed`, đồng thời 1 task container khác lập tức được `Running` thế vào chỗ trống.
-   - Bên k6: Hệ thống có thể mất vài mini-giây khựng lại, nhưng tổng thể test vẫn pass vì hệ thống đã tự phục hồi không cần tương tác của con người / sysadmin.
+3. **Bước 3 (Đánh giá):** 
+   Ngay lập tức, gõ lệnh theo dõi lịch sử dịch vụ:
+   ```bash
+   docker service ps <stack_name>_frontend
+   ```
+   Bạn sẽ thấy container vừa bị kill thay đổi trạng thái thành `Failed`, và gần như ngay lập tức, Swarm lập tức tạo một task container mới toanh trạng thái `Running` để lấp vào chỗ trống, đảm bảo quy định `replicas: 2`.
 
 ---
 

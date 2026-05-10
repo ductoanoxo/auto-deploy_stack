@@ -1,0 +1,142 @@
+// ============================================================
+// AUTO-SCALE JOB — Được kích hoạt bởi Grafana Webhook Alert
+// Tạo Job riêng trong Jenkins với tên: auto-scale-job
+// Pipeline script: "Pipeline script from SCM" → Script Path: Jenkinsfile.scale
+// Bật: "Trigger builds remotely" với Authentication Token: GRAFANA_SCALE_TOKEN
+// ============================================================
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['scale-up', 'scale-down'],
+            description: 'Hành động: scale-up (tăng replicas khi CPU cao) hoặc scale-down (giảm khi nhàn)'
+        )
+        string(
+            name: 'REPLICAS_UP',
+            defaultValue: '3',
+            description: 'Số replicas khi scale-up (mặc định: 3 cho t3.small)'
+        )
+        string(
+            name: 'REPLICAS_DOWN',
+            defaultValue: '2',
+            description: 'Số replicas khi scale-down về bình thường (mặc định: 2)'
+        )
+    }
+
+    environment {
+        STACK_NAME        = 'auto-deploy_stack'
+        FRONTEND_SERVICE  = 'auto-deploy_stack_frontend'
+        BACKEND_SERVICE   = 'auto-deploy_stack_backend'
+    }
+
+    stages {
+        stage('Validate Input') {
+            steps {
+                script {
+                    echo "⚡ Grafana triggered: ACTION=${params.ACTION}"
+                    if (params.ACTION != 'scale-up' && params.ACTION != 'scale-down') {
+                        error("Invalid ACTION: ${params.ACTION}. Must be 'scale-up' or 'scale-down'.")
+                    }
+                }
+            }
+        }
+
+        stage('Get Current State') {
+            steps {
+                script {
+                    echo '📊 Kiểm tra trạng thái replicas hiện tại...'
+                    sh 'docker service ls --filter "name=${STACK_NAME}" --format "table {{.Name}}\t{{.Replicas}}"'
+                }
+            }
+        }
+
+        stage('Scale Services') {
+            steps {
+                script {
+                    def targetReplicas = (params.ACTION == 'scale-up') ? params.REPLICAS_UP : params.REPLICAS_DOWN
+                    def emoji          = (params.ACTION == 'scale-up') ? '📈' : '📉'
+
+                    echo "${emoji} Đang ${params.ACTION}: ${FRONTEND_SERVICE} và ${BACKEND_SERVICE} → ${targetReplicas} replicas..."
+
+                    sh """
+                        docker service scale ${FRONTEND_SERVICE}=${targetReplicas}
+                        docker service scale ${BACKEND_SERVICE}=${targetReplicas}
+                    """
+
+                    echo "✅ Scale lệnh đã gửi. Đợi Swarm cập nhật..."
+                    // Đợi 30s để Swarm hoàn tất rolling update
+                    sleep 30
+                }
+            }
+        }
+
+        stage('Verify Scale') {
+            steps {
+                script {
+                    echo '🔍 Xác nhận số replicas sau khi scale...'
+                    def result = sh(
+                        script: "docker service ls --filter 'name=${STACK_NAME}' --format '{{.Name}}: {{.Replicas}}'",
+                        returnStdout: true
+                    ).trim()
+                    echo "Trạng thái sau scale:\n${result}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                def targetReplicas = (params.ACTION == 'scale-up') ? params.REPLICAS_UP : params.REPLICAS_DOWN
+                def emoji          = (params.ACTION == 'scale-up') ? '📈' : '📉'
+                def actionLabel    = (params.ACTION == 'scale-up') ? 'SCALE UP (CPU > 80%)' : 'SCALE DOWN (CPU < 30%)'
+
+                def message = """
+${emoji} *Auto-Scaling Alert*
+*Hành động:* ${actionLabel}
+*Stack:* \`${env.STACK_NAME}\`
+*Frontend:* \`${env.FRONTEND_SERVICE}\` → *${targetReplicas} replicas*
+*Backend:* \`${env.BACKEND_SERVICE}\` → *${targetReplicas} replicas*
+*Trạng thái:* ✅ Thành công
+*Build:* #${env.BUILD_NUMBER}
+*URL:* ${env.BUILD_URL}
+""".trim()
+
+                withCredentials([
+                    string(credentialsId: 'telegram-bot-token', variable: 'TOKEN'),
+                    string(credentialsId: 'telegram-chat-id',  variable: 'CHAT_ID')
+                ]) {
+                    sh """curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage \
+                        -d chat_id=\${CHAT_ID} \
+                        -d parse_mode=Markdown \
+                        -d text='${message}'"""
+                }
+            }
+        }
+
+        failure {
+            script {
+                def message = """
+❌ *Auto-Scaling THẤT BẠI*
+*Hành động:* ${params.ACTION}
+*Build:* #${env.BUILD_NUMBER}
+*URL:* ${env.BUILD_URL}
+*→ Cần kiểm tra thủ công!*
+""".trim()
+
+                withCredentials([
+                    string(credentialsId: 'telegram-bot-token', variable: 'TOKEN'),
+                    string(credentialsId: 'telegram-chat-id',  variable: 'CHAT_ID')
+                ]) {
+                    sh """curl -s -X POST https://api.telegram.org/bot\${TOKEN}/sendMessage \
+                        -d chat_id=\${CHAT_ID} \
+                        -d parse_mode=Markdown \
+                        -d text='${message}'"""
+                }
+            }
+        }
+    }
+}
