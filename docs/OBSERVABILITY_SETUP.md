@@ -1,182 +1,54 @@
-# 📊 Observability Stack Setup Guide (LGTM + Grafana Alloy)
+# Docker Swarm Observability Setup Guide (LGTM Stack)
 
-Tài liệu này hướng dẫn chi tiết cách thiết lập hệ thống giám sát toàn diện cho dự án bằng bộ tứ **LGTM** (Loki, Grafana, Tempo, Mimir/Prometheus) thông qua **Grafana Alloy**.
+Tài liệu này ghi lại các cấu hình quan trọng và các bước xử lý sự cố để thiết lập hệ thống quan sát (Logging, Metrics, Tracing) cho cụm Docker Swarm trên AWS.
 
----
+## 1. Logging (Loki)
+**Thử thách:** Một số Docker Logging Drivers (như `awslogs` hoặc cấu hình mặc định trên AWS) không cho phép Alloy đọc log qua Docker API.
+**Giải pháp:** Chuyển sang quét file log trực tiếp từ host.
 
-## 🏗️ Kiến trúc tổng quan
+- **Cấu hình Alloy (`config.alloy`):**
+  - Sử dụng `loki.source.file` thay vì `loki.source.docker`.
+  - Đường dẫn: `/var/lib/docker/containers/*/*-json.log`.
+  - **Relabeling:** Ánh xạ nhãn `__meta_docker_container_label_com_docker_swarm_service_name` thành nhãn `job` để phân biệt các Service trong Swarm.
 
-- **Grafana Cloud:** Nơi lưu trữ và hiển thị dữ liệu (SaaS).
-- **Grafana Alloy:** Collector chạy trên EC2 (Docker Swarm) để thu gom dữ liệu.
-- **Dữ liệu thu thập:**
-  - **Metrics:** Thông số hệ thống EC2 và `/metrics` từ FastAPI.
-  - **Logs:** Toàn bộ log từ các Docker container.
-  - **Traces:** Dấu vết các request xử lý trong ứng dụng (distributed tracing).
+- **Docker Compose:** Phải mount volume log:
+  ```yaml
+  volumes:
+    - /var/lib/docker/containers:/var/lib/docker/containers:ro
+  ```
 
----
+## 2. Tracing (Tempo)
+**Thử thách:** Lệch pha giao thức giữa Backend (HTTP) và Collector (gRPC) dẫn đến mất dữ liệu Trace.
+**Giải pháp:** Cấu hình Backend gửi Trace qua HTTP (cổng 4318) và định danh Service tường minh.
 
-## 🛠️ Bước 1: Chuẩn bị trên Grafana Cloud
+- **Endpoint:** `http://alloy:4318/v1/traces` (OTLP HTTP).
+- **Backend (Python):** 
+  - Sử dụng `OTLPSpanExporter` từ thư viện `opentelemetry-exporter-otlp-proto-http`.
+  - **Quan trọng:** Phải khai báo `Resource` với `SERVICE_NAME` tường minh trong code để tránh nhãn `unknown_service`.
 
-1. Đăng nhập vào [Grafana Cloud](https://grafana.com/products/cloud/).
-2. Truy cập vào trang **Security -> Access Policies** để tạo một Token (API Key) có quyền:
-   - `metrics:write`
-   - `logs:write`
-   - `traces:write`
-3. Lưu lại các thông số sau từ Dashboard của bạn:
-   - **Prometheus:** Remote Write Endpoint, Username (User ID).
-   - **Loki:** URL, Username.
-   - **Tempo:** URL (OTLP Endpoint), Username.
+## 3. Metrics (Prometheus/Mimir)
+**Thử thách:** Khó phân biệt dữ liệu giữa máy Jenkins, máy Manager và máy Worker.
+**Giải pháp:** Gắn nhãn `nodename` toàn cục (External Labels).
 
----
-
-## 🛠️ Bước 2: Cấu hình Grafana Alloy (`config.alloy`)
-
-Tạo file `config.alloy` tại thư mục gốc của project:
-
-```hcl
-// ==========================================
-// 1. METRICS (PROMETHEUS)
-// ==========================================
-prometheus.exporter.unix "node" { }
-
-prometheus.scrape "system" {
-  targets    = prometheus.exporter.unix.node.targets
-  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
-}
-
-prometheus.remote_write "grafana_cloud" {
-  endpoint {
-    url = "https://<PROMETHEUS_URL>/api/prom/push"
-    basic_auth {
-      username = "<PROMETHEUS_USER_ID>"
-      password = "<GRAFANA_CLOUD_TOKEN>"
+- **Cấu hình Alloy:**
+  ```alloy
+  prometheus.remote_write "grafanacloud" {
+    external_labels = {
+      nodename = sys.env("NODE_NAME"),
     }
   }
-}
+  ```
+- **Query Dashboard:** Sử dụng `avg by (nodename)` để biểu đồ hiển thị theo tên máy thay vì IP.
 
-// ==========================================
-// 2. LOGS (LOKI)
-// ==========================================
-loki.relabel "docker" {
-  forward_to = [loki.write.grafana_cloud.receiver]
-  rule {
-    target_label = "job"
-    replacement  = "docker_logs"
-  }
-}
+## 4. Grafana Dashboard Tips
 
-loki.source.docker "all_containers" {
-  host       = "unix:///var/run/docker.sock"
-  forward_to = [loki.relabel.docker.receiver]
-}
+### Dịch vụ & Bản sao (Services & Replicas)
+- **Desired:** Số lượng bản sao bạn muốn chạy (cấu hình).
+- **Running:** Số lượng bản sao thực tế đang sống.
+- **Mẹo:** Sử dụng Transformation `Organize fields` để ẩn các cột rác và đổi tên `Value #A`, `Value #B` thành `Running` và `Desired`.
 
-loki.write "grafana_cloud" {
-  endpoint {
-    url = "https://<LOKI_URL>/loki/api/v1/push"
-    basic_auth {
-      username = "<LOKI_USER_ID>"
-      password = "<GRAFANA_CLOUD_TOKEN>"
-    }
-  }
-}
-
-// ==========================================
-// 3. TRACES (TEMPO)
-// ==========================================
-otelcol.receiver.otlp "default" {
-  grpc { endpoint = "0.0.0.0:4317" }
-  http { endpoint = "0.0.0.0:4318" }
-
-  output {
-    traces = [otelcol.exporter.otlp.tempo.input]
-  }
-}
-
-otelcol.auth.basic "tempo" {
-  username = "<TEMPO_USER_ID>"
-  password = "<GRAFANA_CLOUD_TOKEN>"
-}
-
-otelcol.exporter.otlp "tempo" {
-  client {
-    endpoint = "<TEMPO_URL>:443"
-    auth     = otelcol.auth.basic.tempo.handler
-  }
-}
-```
+### Truy vết (Trace Search)
+- Nếu bị lỗi "No data", hãy thử dùng query trống `{}` hoặc chuyển sang chế độ **Search** thay vì **TraceQL** để kiểm tra tính thông suốt của dữ liệu.
 
 ---
-
-## 🛠️ Bước 3: Triển khai trên Docker Swarm
-
-Cập nhật `docker-compose.yml` để thêm service Alloy chạy ở chế độ **Global**:
-
-```yaml
-  alloy:
-    image: grafana/alloy:latest
-    volumes:
-      - ./config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /:/host/root:ro,rslave
-    command: [
-      "run",
-      "--allow-loading-from-ports",
-      "/etc/alloy/config.alloy"
-    ]
-    ports:
-      - "4317:4317" # gRPC Tracing
-      - "4318:4318" # HTTP Tracing
-    deploy:
-      mode: global
-      resources:
-        limits:
-          memory: 384M
-```
-
----
-
-## 🛠️ Bước 4: Instrument Backend (FastAPI)
-
-Để Backend gửi được Traces và Metrics, cần thực hiện:
-
-1. **Cài đặt thư viện:**
-   ```bash
-   pip install opentelemetry-api opentelemetry-sdk \
-               opentelemetry-instrumentation-fastapi \
-               opentelemetry-exporter-otlp \
-               prometheus-fastapi-instrumentator
-   ```
-
-2. **Cấu hình trong `main.py`:**
-   ```python
-   from prometheus_fastapi_instrumentator import Instrumentator
-   from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-
-   # ... khởi tạo app ...
-
-   # Metrics
-   Instrumentator().instrument(app).expose(app)
-
-   # Tracing (Gửi tới Alloy)
-   FastAPIInstrumentor.instrument_app(app)
-   ```
-
-3. **Biến môi trường cho Backend:**
-   ```env
-   OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
-   OTEL_SERVICE_NAME=backend-service
-   ```
-
----
-
-## 🛠️ Bước 5: Kiểm tra & Thành quả
-
-1. **Check Alloy Logs:** `docker service logs -f devops_stack_alloy` để đảm bảo không có lỗi kết nối tới Grafana Cloud.
-2. **Grafana Cloud Dashboards:**
-   - Sử dụng **"Explore"** để truy vấn Metrics (Prometheus).
-   - Truy cập **Loki** để xem log từ các container.
-   - Truy cập **Tempo** để xem biểu đồ Traces.
-3. **Xác nhận liên kết:** Khi xem một log lỗi, bạn sẽ thấy link **Trace ID** để nhảy thẳng sang Tempo xem vết của request đó.
-
----
-> **Tip:** Luôn bảo mật file `config.alloy` hoặc sử dụng biến môi trường cho các Token nhạy cảm.
+*Tài liệu được khởi tạo ngày 10/05/2026 sau khi fix thành công toàn bộ LGTM stack.*

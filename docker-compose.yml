@@ -23,8 +23,11 @@ services:
       retries: 3
       start_period: 60s
     deploy:
-      placement:
-        max_replicas_per_node: 1
+      replicas: 2
+      update_config:
+        parallelism: 1
+        order: start-first
+        delay: 10s
       restart_policy:
         condition: on-failure
 
@@ -38,8 +41,11 @@ services:
     networks:
       - stack_network
     deploy:
-      placement:
-        max_replicas_per_node: 1
+      replicas: 2
+      update_config:
+        parallelism: 1
+        order: start-first
+        delay: 10s
       restart_policy:
         condition: on-failure
 
