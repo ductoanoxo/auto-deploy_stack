@@ -99,7 +99,7 @@ services:
           memory: 64M
 
   swarm-exporter:
-    image: jakubs22/docker-swarm-exporter:latest
+    image: ghcr.io/neuroforgede/docker-swarm-exporter:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:

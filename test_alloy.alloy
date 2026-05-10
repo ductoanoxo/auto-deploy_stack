@@ -1,0 +1,4 @@
+discovery.dockerswarm "swarm" {
+  host = "unix:///var/run/docker.sock"
+  role = "tasks"
+}
