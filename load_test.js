@@ -27,14 +27,11 @@ const normalStages = [
 ];
 
 // Profile stress: mục đích kích hoạt Auto-Scaling Alert (CPU > 80%)
-// Grafana Alert sẽ fire sau 2 phút CPU vượt ngưỡng → Jenkins scale-up → response time giảm
+// Tăng tốc độ ramp-up để đạt đỉnh nhanh nhất
 const highStages = [
-  { duration: '1m',  target: 50   },  // Warm-up
-  { duration: '2m',  target: 150  },  // Tăng lên 150
-  { duration: '5m',  target: 300  },  // Giữ 300 VU (đủ để t3.small spike CPU)
-  { duration: '1m',  target: 100  },  // Giảm dần
-  { duration: '5m',  target: 30   },  // Tải thấp để scale-down
-  { duration: '30s', target: 0    },
+  { duration: '20s', target: 300 }, // Lên đỉnh 300 users cực nhanh
+  { duration: '5m',  target: 300 }, // Duy trì tải cao
+  { duration: '1m',  target: 0   },
 ];
 
 export const options = {
@@ -51,13 +48,14 @@ export const options = {
 
 export default function () {
   if (PROFILE === 'high') {
-    // === STRESS PROFILE: Gọi endpoint CPU-intensive để spike CPU ===
-    const resStress = http.get(`http://${BACKEND_HOST}:8000/api/stress?iterations=1000000`);
+    // === STRESS PROFILE: Ép CPU lên 100% ===
+    // Tăng iterations lên 3,000,000 để mỗi request "ngốn" CPU lâu hơn
+    const resStress = http.get(`http://${BACKEND_HOST}:8000/api/stress?iterations=3000000`);
     check(resStress, {
       'Stress endpoint 200': (r) => r.status === 200,
-      'Stress response < 5s': (r) => r.timings.duration < 5000,
+      'Stress response < 10s': (r) => r.timings.duration < 10000,
     });
-    sleep(0.5);
+    sleep(0.1); // Gửi dồn dập
   } else {
     // === NORMAL PROFILE: Test Zero Downtime & Self-Healing ===
     const resApi = http.get(`http://${BACKEND_HOST}:8000/api/health`);
