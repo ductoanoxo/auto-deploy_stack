@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
@@ -6,6 +6,7 @@ from typing import List, Optional
 import psutil
 import logging
 import sys
+import hashlib
 from pythonjsonlogger import jsonlogger
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -254,3 +255,22 @@ async def health(db: AsyncSession = Depends(get_db)):
         db_status=db_status,
         timestamp=datetime.utcnow().isoformat() + "Z"
     )
+
+@app.get("/api/stress")
+async def stress(iterations: int = Query(default=100000, le=500000)):
+    """
+    Demo endpoint: giả lập CPU-intensive workload để trigger auto-scaling.
+    Tăng iterations để tăng tải CPU (tối đa 500000).
+    """
+    # SHA-256 hashing lặp nhiều lần → CPU spike thực sự
+    result = "seed"
+    for i in range(iterations):
+        result = hashlib.sha256(f"{result}{i}".encode()).hexdigest()
+    
+    return {
+        "status": "ok",
+        "iterations": iterations,
+        "hash_sample": result[:16],
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "message": "CPU stress test completed"
+    }
