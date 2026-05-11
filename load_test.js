@@ -45,20 +45,20 @@ export const options = {
 
 export default function () {
   // Test Backend API
-  const resApi = http.get('http://localhost:8000/api/health');
+  const resApi = http.get('http://35.172.60.19:8000/api/health');
   check(resApi, {
     'Backend API status 200': (r) => r.status === 200,
     'Backend API response < 2s': (r) => r.timings.duration < 2000,
   });
 
   // Test Frontend
-  const resWeb = http.get('http://localhost:80');
+  const resWeb = http.get('http://35.172.60.19:80');
   check(resWeb, {
     'Frontend status 200': (r) => r.status === 200,
   });
 
   // Test CRUD items (tạo thêm tải thực tế cho backend)
-  const resItems = http.get('http://localhost:8000/items');
+  const resItems = http.get('http://35.172.60.19:8000/items');
   check(resItems, {
     'Items API status 200 or 404': (r) => r.status === 200 || r.status === 404,
   });

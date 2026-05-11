@@ -58,6 +58,15 @@ Vào **AWS Console → EC2 → Security Groups → Security Group của máy Jen
 ---
 
 ## BƯỚC 2 — Tạo Jenkins Job `auto-scale-job`
+Hiện tại:
+  Manager (ip-172-31-2-142)  — CPU 20% 🟢 — (rảnh, cấu hình mạnh c7i.large)
+  Worker  (ip-172-31-95-223) — CPU 85% 🔴 — backend(1), frontend(1) (t3.small)
+
+Sau khi scale lên 3:
+  Worker  (ip-172-31-95-223) — backend(1), frontend(1)  ← giữ nguyên
+  Manager (ip-172-31-2-142)  — backend(1), frontend(1)  ← container mới đặt ở đây ✅
+
+Kết quả: Worker bớt tải vì Swarm routing mesh chia bớt request sang Manager.
 
 ### 2.1 Tạo Job
 
@@ -119,7 +128,7 @@ Chạy lệnh này từ terminal để test job trước khi kết nối Grafana
 # Test scale-up (thay <EC2_MANAGER_IP> bằng IP thật)
 curl -X POST "http://35.172.60.19:8080/job/auto-scale-job/buildWithParameters" \
   --user "toantra349:11649c4a3af9779372a711159cbc1bd075" \
-  --data "token=GRAFANA_SCALE_TOKEN" \
+  --data "token=grafanascaletoken" \
   --data "ACTION=scale-up" \
   --data "REPLICAS_UP=3" \
   --data "REPLICAS_DOWN=2"
@@ -136,23 +145,24 @@ docker service ls | grep auto-deploy_stack
 
 Vào **Grafana Cloud** (`https://grafana.com/orgs/<your-org>`) → **Alerting → Alert rules → New alert rule**
 
-### 3.1 Alert Scale-Up (CPU > 80%)
+### 3.1 Alert Scale-Up (CPU Container > 80%)
 
 **A. Define query and alert condition:**
 
-Chọn data source: **grafanacloud-<tên-stack>-prom** (Prometheus của bạn)
+Chọn data source: **grafanacloud-toantra349-prom**
+
+> 💡 cAdvisor chỉ report metric ở cấp root (`id="/"`), không có per-container. Do đó dùng **Node Exporter** (`node_cpu_seconds_total`) để đo CPU của máy **EC2 Worker** — nơi đang chịu tải chính của app.
 
 Query (PromQL):
 ```promql
-avg(
-  rate(
-    container_cpu_usage_seconds_total{
-      container_label_com_docker_swarm_service_name=~"auto-deploy_stack_backend|auto-deploy_stack_frontend",
-      name!=""
-    }[2m]
-  )
-) * 100
+100 - (
+  avg by (nodename) (
+    irate(node_cpu_seconds_total{mode="idle", nodename="ip-172-31-95-223"}[5m])
+  ) * 100
+)
 ```
+
+> ⚠️ `ip-172-31-95-223` là **worker node** (nơi thực sự chạy tải). Khi máy này > 80%, Jenkins sẽ ra lệnh scale thêm replicas để Swarm chia tải sang máy Manager rảnh hơn.
 
 - **Reduce:** Last
 - **Threshold:** IS ABOVE `80`
@@ -175,11 +185,18 @@ avg(
 
 ---
 
-### 3.2 Alert Scale-Down (CPU < 30%)
+### 3.2 Alert Scale-Down (CPU Node < 30%)
 
 Tạo rule thứ 2, tương tự nhưng:
 
-Query: **Cùng PromQL như trên**
+Query (PromQL) — **Copy y chang câu query 3.1**:
+```promql
+100 - (
+  avg by (nodename) (
+    irate(node_cpu_seconds_total{mode="idle", nodename="ip-172-31-95-223"}[5m])
+  ) * 100
+)
+```
 
 - **Threshold:** IS BELOW `30`
 - **For (Pending period):** `5m`
