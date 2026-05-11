@@ -319,4 +319,14 @@
 > Ứng dụng vẫn chạy bình thường — Jenkins chỉ cần khi deploy. Docker Swarm tự tái tạo container lỗi (Self-Healing).
 
 **Q: Làm sao rollback khi deploy fail?**
-> Mỗi image có tag = BUILD_NUMBER. Rollback bằng: `docker service update --image toantra349/backend:65 auto-deploy_stack_backend`
+**Q: Làm sao để các máy EC2 giao tiếp được với nhau trong cụm Swarm?**
+> Em cấu hình **AWS Security Group** để mở các port đặc thù của Swarm (2377, 7946, 4789). Sau đó dùng lệnh `docker swarm init` trên Manager để tạo cụm và dùng `join-token` để kết nối Worker vào thông qua mạng nội bộ (**Private IP**).
+
+**Q: Tại sao phải mở cổng 4789 UDP?**
+> Đây là cổng quan trọng nhất để chạy **Overlay Network**. Nó cho phép các container chạy trên 2 máy khác nhau có thể nói chuyện với nhau như đang ở trên cùng một máy (Localhost), giúp hệ thống phân tán hoạt động trong suốt.
+
+**Q: Bạn bảo mật hệ thống như thế nào trên AWS?**
+> 1. Sử dụng **Security Group** làm tường lửa, chỉ mở các port cần thiết.
+> 2. Các port quản trị (2377, 7946, 4789) chỉ mở cho IP nội bộ của cụm.
+> 3. Toàn bộ thông tin nhạy cảm (DB URL, API Tokens) được lưu trong **Jenkins Credentials** và **Docker Config/Secret**, không hardcode vào mã nguồn.
+> 4. Sử dụng **Portainer** để giám sát và hạn chế truy cập trực tiếp vào Terminal của EC2.

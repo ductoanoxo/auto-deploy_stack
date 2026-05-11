@@ -2,6 +2,46 @@
 
 Tài liệu này quy hoạch lại toàn bộ hệ thống CI/CD, Observability và quy trình vận hành chuẩn cho dự án.
 
+## 0. Thiết lập Hạ tầng AWS & Swarm Cluster
+
+Trước khi triển khai ứng dụng, hạ tầng mạng phải được thiết lập để các máy EC2 có thể "nhìn thấy" và giao tiếp với nhau an toàn.
+
+### 🔐 A. Cấu hình AWS Security Groups
+Để cụm Docker Swarm hoạt động, hai máy EC2 (Manager & Worker) phải mở các cổng sau trong **Inbound Rules**:
+
+| Port | Giao thức | Mục đích |
+| :--- | :--- | :--- |
+| **2377** | TCP | Quản lý cụm (Cluster management communication) |
+| **7946** | TCP/UDP | Giao tiếp giữa các node (Node discovery) |
+| **4789** | UDP | Lưu lượng mạng Overlay (Overlay network traffic) |
+| **80 / 443** | TCP | Truy cập Web Frontend |
+| **8000** | TCP | Truy cập Backend API |
+| **8080** | TCP | Truy cập Jenkins UI (Chỉ Manager) |
+| **9000** | TCP | Truy cập Portainer UI (Chỉ Manager) |
+
+> [!IMPORTANT]
+> Nên giới hạn các port 2377, 7946, 4789 chỉ cho phép IP của các máy trong cụm (Custom IP) để đảm bảo bảo mật.
+
+### 🐝 B. Quy trình khởi tạo Docker Swarm
+1.  **Trên Manager Node**: Khởi tạo cụm và lấy token.
+    ```bash
+    docker swarm init --advertise-addr <PRIVATE_IP_MANAGER>
+    ```
+    *Lệnh này sẽ sinh ra một "Join Token".*
+
+2.  **Trên Worker Node**: Nhập token để gia nhập cụm.
+    ```bash
+    docker swarm join --token <SWARM_TOKEN> <PRIVATE_IP_MANAGER>:2377
+    ```
+
+3.  **Kiểm tra kết nối** (Trên Manager):
+    ```bash
+    docker node ls
+    ```
+    *Kết quả phải hiển thị cả Manager và Worker với trạng thái `Ready`.*
+
+---
+
 ## 1. Kiến trúc Hệ thống (Architecture)
 
 Hệ thống được vận hành trên **Docker Swarm** với 2 vai trò chính:

@@ -16,22 +16,24 @@ const PROFILE = __ENV.PROFILE || 'normal';
 // IPs của các node trong Swarm cluster
 // Manager (Jenkins, Portainer): 35.172.60.19
 // Worker  (Backend, Frontend):  34.196.57.162
-const BACKEND_HOST  = __ENV.BACKEND_HOST  || '34.196.57.162';  // Worker
+const BACKEND_HOST = __ENV.BACKEND_HOST || '34.196.57.162';  // Worker
 const FRONTEND_HOST = __ENV.FRONTEND_HOST || '34.196.57.162';  // Worker (Frontend also here)
 
 // Profile bình thường: kiểm tra Zero Downtime & Self-Healing
 const normalStages = [
   { duration: '30s', target: 50 },   // Tăng dần lên 50 VUs trong 30s
-  { duration: '2m',  target: 50 },   // Giữ tải ổn định 2 phút
-  { duration: '30s', target: 0  },   // Giảm về 0
+  { duration: '2m', target: 50 },   // Giữ tải ổn định 2 phút
+  { duration: '30s', target: 0 },   // Giảm về 0
 ];
 
 // Profile stress: mục đích kích hoạt Auto-Scaling Alert (CPU > 80%)
-// Tăng tốc độ ramp-up để đạt đỉnh nhanh nhất
+// Grafana Alert sẽ fire sau 2 phút CPU vượt ngưỡng → Jenkins scale-up → response time giảm
+// Profile stress: mục đích kích hoạt Auto-Scaling Alert (CPU > 50%)
+// Nhắm mục tiêu duy trì CPU ở mức 60-70%
 const highStages = [
-  { duration: '20s', target: 300 }, // Lên đỉnh 300 users cực nhanh
-  { duration: '5m',  target: 300 }, // Duy trì tải cao
-  { duration: '1m',  target: 0   },
+  { duration: '30s', target: 70 },  // Ramp-up lên 70 users
+  { duration: '5m',  target: 70 },  // Duy trì ổn định ở mức này
+  { duration: '30s', target: 0  },
 ];
 
 export const options = {
@@ -48,14 +50,13 @@ export const options = {
 
 export default function () {
   if (PROFILE === 'high') {
-    // === STRESS PROFILE: Ép CPU lên 100% ===
-    // Tăng iterations lên 3,000,000 để mỗi request "ngốn" CPU lâu hơn
-    const resStress = http.get(`http://${BACKEND_HOST}:8000/api/stress?iterations=3000000`);
+    // === STRESS PROFILE: Nhắm mục tiêu ~60% CPU ===
+    const resStress = http.get(`http://${BACKEND_HOST}:8000/api/stress?iterations=1000000`);
     check(resStress, {
       'Stress endpoint 200': (r) => r.status === 200,
       'Stress response < 10s': (r) => r.timings.duration < 10000,
     });
-    sleep(0.1); // Gửi dồn dập
+    sleep(1.5); // Thêm nhịp nghỉ để CPU không bị vọt lên 100%
   } else {
     // === NORMAL PROFILE: Test Zero Downtime & Self-Healing ===
     const resApi = http.get(`http://${BACKEND_HOST}:8000/api/health`);
