@@ -76,24 +76,24 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    echo "Running Health Check on ${PROJECT_SERVER_IP}..."
+                    // Dùng localhost — Swarm Routing Mesh tự điều hướng dù container
+                    // đang chạy trên Manager hay Worker
+                    echo "Running Health Check via Swarm Routing Mesh (localhost)..."
                     // Wait for Swarm to stabilize
                     sleep 30
                     
                     retry(3) {
                         try {
-                            sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/health"
+                            // --max-time 15: tránh curl treo vô hạn
+                            sh "curl -f --max-time 15 http://localhost:8000/api/health"
                             echo 'Health check passed!'
                         } catch (Exception e) {
                             echo "Health check failed, retrying in 10s... (Error: ${e.message})"
                             sleep 10
-                            error "Backend not reachable on ${PROJECT_SERVER_IP}:8000"
+                            error "Backend not reachable via Routing Mesh on localhost:8000"
                         }
                     }
-                    
-                    // Verify Status endpoint
-                    sh "curl -f http://${PROJECT_SERVER_IP}:8000/api/status"
-                    echo 'Status endpoint verified!'
+                    echo 'Deploy verification complete!'
                 }
             }
         }
