@@ -257,21 +257,20 @@ async def health(db: AsyncSession = Depends(get_db)):
     )
 
 @app.get("/api/stress")
-async def stress(iterations: int = Query(default=500000, le=5000000)):
+def stress(iterations: int = Query(default=1000000, le=5000000)):
     """
     Demo endpoint: giả lập CPU-intensive workload để trigger auto-scaling.
-    Dùng pure Python math (không phải C extension) để CPU thực sự tăng cao
-    và giữ đủ lâu cho Grafana scrape được (15-30s interval).
+    Dùng 'def' thay vì 'async def' để FastAPI chạy trong thread pool,
+    tránh block event loop và cho phép tận dụng đa nhân CPU.
     """
-    # Pure Python arithmetic — chậm hơn hashlib C extension ~100x
-    # Đủ để giữ 1 CPU core bận vài giây
+    # Pure Python arithmetic
     cpu_before = psutil.cpu_percent(interval=None)
     
     result = 1
     for i in range(1, iterations + 1):
-        result = (result * i + i * i) % 999983  # modular arithmetic, không overflow
+        result = (result * i + i * i) % 999983
     
-    cpu_after = psutil.cpu_percent(interval=0.5)  # đo ngay sau khi tính xong
+    cpu_after = psutil.cpu_percent(interval=0.1)
 
     return {
         "status": "ok",
@@ -279,5 +278,5 @@ async def stress(iterations: int = Query(default=500000, le=5000000)):
         "result_sample": result,
         "cpu_before": cpu_before,
         "cpu_after": cpu_after,
-        "message": "CPU stress test completed — check Grafana for CPU spike"
+        "message": "CPU stress test completed"
     }

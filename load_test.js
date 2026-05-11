@@ -13,6 +13,12 @@ import { check, sleep } from 'k6';
 
 const PROFILE = __ENV.PROFILE || 'normal';
 
+// IPs của các node trong Swarm cluster
+// Manager (Jenkins, Portainer): 35.172.60.19
+// Worker  (Backend, Frontend):  34.196.57.162
+const BACKEND_HOST  = __ENV.BACKEND_HOST  || '34.196.57.162';  // Worker
+const FRONTEND_HOST = __ENV.FRONTEND_HOST || '34.196.57.162';  // Worker (Frontend also here)
+
 // Profile bình thường: kiểm tra Zero Downtime & Self-Healing
 const normalStages = [
   { duration: '30s', target: 50 },   // Tăng dần lên 50 VUs trong 30s
@@ -46,27 +52,26 @@ export const options = {
 export default function () {
   if (PROFILE === 'high') {
     // === STRESS PROFILE: Gọi endpoint CPU-intensive để spike CPU ===
-    // Mỗi VU gọi /api/stress liên tục → Worker CPU tăng cao
-    const resStress = http.get('http://35.172.60.19:8000/api/stress?iterations=200000');
+    const resStress = http.get(`http://${BACKEND_HOST}:8000/api/stress?iterations=1000000`);
     check(resStress, {
       'Stress endpoint 200': (r) => r.status === 200,
       'Stress response < 5s': (r) => r.timings.duration < 5000,
     });
-    sleep(0.5);  // Ít sleep hơn để tạo áp lực tối đa
+    sleep(0.5);
   } else {
     // === NORMAL PROFILE: Test Zero Downtime & Self-Healing ===
-    const resApi = http.get('http://35.172.60.19:8000/api/health');
+    const resApi = http.get(`http://${BACKEND_HOST}:8000/api/health`);
     check(resApi, {
       'Backend API status 200': (r) => r.status === 200,
       'Backend API response < 2s': (r) => r.timings.duration < 2000,
     });
 
-    const resWeb = http.get('http://35.172.60.19:80');
+    const resWeb = http.get(`http://${FRONTEND_HOST}:80`);
     check(resWeb, {
       'Frontend status 200': (r) => r.status === 200,
     });
 
-    const resItems = http.get('http://35.172.60.19:8000/api/users');
+    const resItems = http.get(`http://${BACKEND_HOST}:8000/api/users`);
     check(resItems, {
       'Users API status 200': (r) => r.status === 200,
     });
