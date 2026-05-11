@@ -1,0 +1,322 @@
+# 🎤 Kịch Bản Thuyết Trình
+# Đề tài: Ứng Dụng Docker Trong CI/CD Pipeline
+
+> **Thời lượng dự kiến:** 20–25 phút  
+> **Mỗi slide:** có Lời thuyết trình + 📸 Mô tả hình gen AI
+
+---
+
+## 🎯 CẤU TRÚC BÀI THUYẾT TRÌNH (12 slides)
+
+| # | Slide | Thời gian |
+|---|-------|-----------|
+| 1 | Trang bìa | 0:30 |
+| 2 | Vấn đề & Động lực | 2:00 |
+| 3 | Docker là gì & Tại sao? | 2:00 |
+| 4 | Tổng quan kiến trúc hệ thống | 2:30 |
+| 5 | Hạ tầng: AWS EC2 + Docker Swarm | 2:00 |
+| 6 | CI/CD Pipeline với Jenkins | 3:00 |
+| 7 | Dockerfile & Multi-stage Build | 2:00 |
+| 8 | Zero Downtime Deployment | 2:00 |
+| 9 | Observability Stack (LGTM) | 2:00 |
+| 10 | Auto-Scaling tự động | 2:30 |
+| 11 | ChatOps & Thông báo Telegram | 1:30 |
+| 12 | Kết luận & Demo | 2:00 |
+
+---
+
+---
+
+## SLIDE 1 — TRANG BÌA
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Poster công nghệ nền tối dramatic. Trung tâm: logo Docker (con cá voi xanh phát sáng) được bao quanh bởi các icon đang xoay quanh gồm Jenkins (robot người hầu), GitHub, AWS cloud, và Grafana (orange diamond). Nền: xanh navy đậm với hoa văn lưới lục giác mờ và các luồng hạt điện xanh chạy giữa các icon. Phía dưới: chữ 'CI/CD Pipeline with Docker' font chữ công nghệ đậm. Ánh sáng điện ảnh, hiệu ứng phát sáng neon, tỷ lệ 16:9."
+
+### 🎤 Lời thuyết trình:
+> *"Chào thầy cô và các bạn. Hôm nay nhóm em sẽ trình bày về đề tài: **Ứng dụng Docker trong CI/CD Pipeline**. Đây không chỉ là lý thuyết — bài trình bày được xây dựng từ một hệ thống chạy thực tế trên AWS với Jenkins tự động hóa toàn bộ quy trình build và deploy."*
+
+---
+
+---
+
+## SLIDE 2 — VẤN ĐỀ & ĐỘNG LỰC
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Hình minh họa so sánh 2 cột. CỘT TRÁI (đỏ/tối): Lập trình viên căng thẳng bị bao quanh bởi giấy nhớ, dây điện rối, màn hình máy tính hỏng. Nhãn: 'Deploy thủ công — Chạy được trên máy tôi!'. CỘT PHẢI (xanh/sáng): Màn hình hiển thị dashboard pipeline tự động gọn gàng, các dấu tick xanh, mũi tên chạy mượt qua từng giai đoạn. Nhãn: 'CI/CD Pipeline tự động'. Phong cách minh họa UI phẳng hiện đại."
+
+### 🎤 Lời thuyết trình:
+> *"Trước khi có Docker và CI/CD, quy trình phát triển phần mềm rất thủ công và rủi ro. Developer build code trên máy mình, copy file lên server, rồi phát hiện lỗi vì môi trường khác nhau — câu cửa miệng nổi tiếng là 'nó chạy được trên máy tôi mà!'.*
+>
+> *Cụ thể, nhóm em gặp 3 vấn đề chính:*
+> - *Môi trường **không nhất quán**: dev dùng Python 3.10, server chạy 3.8 → lỗi không ngờ tới*
+> - *Deploy **thủ công**: copy file, chạy tay từng lệnh, quên bước nào là hỏng*
+> - *Không có **kiểm tra tự động**: code lỗi được push thẳng lên production*
+>
+> *Docker và CI/CD Pipeline giải quyết triệt để cả 3 vấn đề này."*
+
+---
+
+---
+
+## SLIDE 3 — DOCKER LÀ GÌ & TẠI SAO?
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Infographic giáo dục gọn gàng. TRÊN: Icon con cá voi Docker mang các container vận chuyển màu sắc ghi 'Frontend', 'Backend', 'Database'. GIỮA: Bảng so sánh 3 hàng — Hàng 1: 'Máy ảo' (nặng, chậm, icon cả hệ điều hành) vs 'Docker Container' (nhẹ, nhanh, icon ứng dụng). Hàng 2: 'Môi trường không nhất quán' vs 'Chạy giống nhau mọi nơi'. Hàng 3: 'Cài tay từng bước' vs 'Dockerfile = công thức nấu ăn'. Màu xanh dương và trắng, thiết kế phẳng hiện đại."
+
+### 🎤 Lời thuyết trình:
+> *"Docker là nền tảng **đóng gói ứng dụng vào container** — giống như chiếc hộp vận chuyển chuẩn quốc tế. Dù chuyển bằng tàu, xe tải hay máy bay, hàng trong hộp vẫn nguyên vẹn.*
+>
+> *So với máy ảo truyền thống, Docker container nhẹ hơn rất nhiều — không cần cả hệ điều hành bên trong, chỉ chứa đúng những gì app cần. Container khởi động trong vài giây, VM mất vài phút.*
+>
+> *Trong dự án của nhóm em, Docker giúp:*
+> - *Backend FastAPI + Frontend React chạy **cùng môi trường** trên mọi máy*
+> - ***Dockerfile** định nghĩa rõ ràng cách build — không còn 'nó chạy trên máy tôi'*
+> - *Mỗi version được **đóng gói thành image** với tag riêng, dễ rollback*"
+
+---
+
+---
+
+## SLIDE 4 — TỔNG QUAN KIẾN TRÚC HỆ THỐNG
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ kiến trúc kỹ thuật nền tối. Luồng pipeline DevOps hoàn chỉnh. TRÁI: Logo GitHub với icon code → TRUNG TÂM TRÊN: 6 giai đoạn Jenkins pipeline (Checkout → Test → Build → Push → Deploy → Health Check) với badge trạng thái màu. GIỮA: Hai hộp máy chủ EC2 AWS — Manager Node (nhãn: Jenkins, Portainer) và Worker Node (nhãn: Frontend React, Backend FastAPI). PHẢI: Logo Grafana Cloud với các dashboard (Logs, Metrics, Traces). DƯỚI CÙNG: Icon thông báo Telegram. Mũi tên kết nối tất cả. Nền gradient xanh dương và tím, phong cách sơ đồ DevOps hiện đại."
+
+### 🎤 Lời thuyết trình:
+> *"Đây là bức tranh toàn cảnh hệ thống của nhóm em. Tất cả được kết nối thành một vòng tự động hoàn chỉnh:*
+>
+> *1. Developer push code lên **GitHub***
+> *2. **Jenkins** tự động nhận webhook, chạy pipeline 6 bước*
+> *3. Docker image được push lên **Docker Hub***
+> *4. Swarm deploy ứng dụng lên **2 máy EC2** trên AWS*
+> *5. **Grafana Cloud** theo dõi mọi metrics, logs, traces*
+> *6. Khi có vấn đề, **Telegram** nhận thông báo ngay lập tức*
+>
+> *Toàn bộ quy trình này — từ git push đến deploy thành công — mất khoảng **3-5 phút** mà không cần can thiệp thủ công."*
+
+---
+
+---
+
+## SLIDE 5 — HẠ TẦNG: AWS EC2 + DOCKER SWARM
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ topology mạng. Hai hộp EC2 AWS đặt cạnh nhau nối bằng đường mạng xanh nhãn 'Docker Overlay Network'. HỘP TRÁI nhãn 'Manager Node — c7i.large' chứa các icon: robot Jenkins, mỏ neo Portainer, bộ thu thập Grafana Alloy. HỘP PHẢI nhãn 'Worker Node — t3.small' chứa các icon: logo React (Frontend), logo FastAPI (Backend), cAdvisor, Alloy. Phía trên cả hai: chữ 'Docker Swarm' với hoa văn tổ ong/bầy đàn ở nền. Phong cách kiến trúc cloud chuyên nghiệp, màu cam đặc trưng của AWS."
+
+### 🎤 Lời thuyết trình:
+> *"Hạ tầng của nhóm em gồm **2 máy EC2 trên AWS** kết nối thành cụm Docker Swarm:*
+>
+> ***Manager Node** (`c7i.large` — mạnh hơn):*
+> - *Chạy **Jenkins** để điều phối CI/CD*
+> - *Chạy **Portainer** — giao diện quản lý Docker trực quan*
+> - *Điều phối toàn bộ cụm Swarm — quyết định container chạy ở đâu*
+>
+> ***Worker Node** (`t3.small` — máy ứng dụng):*
+> - *Chạy **Frontend React** phục vụ giao diện người dùng*
+> - *Chạy **Backend FastAPI** xử lý API và kết nối Supabase (PostgreSQL)*
+> - *Chạy **cAdvisor** để thu thập metrics container*
+>
+> *Docker Swarm tạo ra **Overlay Network** kết nối 2 máy như một hệ thống thống nhất. **Routing Mesh** giúp bất kỳ request nào vào cổng 80 đều được điều hướng đúng container — dù container đó đang chạy trên máy nào."*
+
+---
+
+---
+
+## SLIDE 6 — CI/CD PIPELINE VỚI JENKINS (6 STAGES)
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ pipeline nằm ngang trên nền tối. Sáu khối giai đoạn màu sắc nối nhau bằng mũi tên: Giai đoạn 1 (xanh dương) 'Checkout' icon nhánh Git, Giai đoạn 2 (vàng) 'Test Backend' icon ống nghiệm/pytest, Giai đoạn 3 (cam) 'Build Images' icon con cá voi Docker, Giai đoạn 4 (tím) 'Push to Hub' icon tải lên Docker Hub, Giai đoạn 5 (xanh lá) 'Deploy Swarm' icon server/stack, Giai đoạn 6 (xanh ngọc) 'Health Check' icon nhịp tim/dấu tích. Phía dưới mỗi giai đoạn: badge trạng thái SUCCESS màu xanh. Phong cách Jenkins Blue Ocean UI, nền tối hiện đại."
+
+### 🎤 Lời thuyết trình:
+> *"Trái tim của hệ thống là **Jenkins Pipeline** với 6 giai đoạn tự động:*
+>
+> *🔵 **Stage 1 — Checkout:** Jenkins kết nối GitHub, pull code mới nhất về máy*
+>
+> *🟡 **Stage 2 — Test Backend:** Build Docker image riêng chạy Pytest — nếu test fail, pipeline dừng ngay, không deploy code lỗi*
+>
+> *🟠 **Stage 3 — Build Images:** Build Docker image cho cả Frontend và Backend, tag với số build (`BUILD_NUMBER`) — ví dụ `toantra349/backend:66`*
+>
+> *🟣 **Stage 4 — Push to Hub:** Đẩy image lên Docker Hub với authentication, lưu trữ mọi version*
+>
+> *🟢 **Stage 5 — Deploy:** Chạy `docker stack deploy` trên Swarm — **rolling update không downtime***
+>
+> *🔵 **Stage 6 — Health Check:** Tự động gọi `/api/health` kiểm tra backend sống, retry 3 lần nếu cần*
+>
+> *Cuối cùng, dù thành công hay thất bại, **Telegram Bot** nhận được thông báo với emoji ✅ hoặc ❌ và link trực tiếp đến build log."*
+
+---
+
+---
+
+## SLIDE 7 — DOCKERFILE & MULTI-STAGE BUILD
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ chia đôi so sánh. TRÁI: Build Docker đơn giai đoạn truyền thống hiển thị image lớn '800MB' với cảnh báo đỏ. PHẢI: Luồng multi-stage build — Hộp Giai đoạn 1 'tester' (nhỏ, chạy pytest), Hộp Giai đoạn 2 'builder' (biên dịch/cài dependencies), Hộp Giai đoạn 3 'production' (image siêu gọn '120MB', dấu tích xanh). Mũi tên chạy từ trên xuống. Các đoạn code hiển thị dạng syntax highlighted. Nền tối với màu xanh Docker làm điểm nhấn."
+
+### 🎤 Lời thuyết trình:
+> *"Một điểm quan trọng trong dự án là dùng **Multi-stage Dockerfile**. Thay vì một image to chứa mọi thứ, chúng ta chia build thành nhiều giai đoạn:*
+>
+> *- **Stage 'tester'**: Chạy Pytest kiểm tra code — không đưa vào production*
+> *- **Stage 'builder'**: Cài đặt dependencies đầy đủ để build*
+> *- **Stage 'production'**: Chỉ copy những file cần thiết — image siêu nhỏ*
+>
+> *Lợi ích thực tế:*
+> - *Image production **nhỏ hơn 60-70%** → tải nhanh hơn, tốn ít bandwidth*
+> - *Không có dev-tools, test frameworks trong production → **bảo mật hơn***
+> - *Jenkins chạy `docker build --target tester` để test, sau đó build lại image production*
+>
+> *Toàn bộ logic build chứa trong **một Dockerfile duy nhất** — dễ quản lý, dễ review."*
+
+---
+
+---
+
+## SLIDE 8 — ZERO DOWNTIME DEPLOYMENT
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ timeline minh họa quá trình rolling update. Ba hàng hộp container đặt cạnh nhau. HÀNG TRÊN 'Thời điểm T=0': hai container xanh lá 'V1' đang chạy. HÀNG GIỮA 'T+10s': một V1 xanh lá + một V2 xanh dương mới đang khởi động, có spinner 'Health Check' trên V2. HÀNG DƯỚI 'T+20s': cả hai container đều là V2 xanh dương, chạy đầy đủ. Mũi tên traffic liên tục (đại diện người dùng) chạy ngang qua cả ba hàng — cho thấy không bao giờ bị đứt. Phía dưới: biểu đồ k6 load test hiển thị 200 OK nhất quán xuyên suốt."
+
+### 🎤 Lời thuyết trình:
+> *"Một trong những tính năng ấn tượng nhất của Docker Swarm là **Rolling Update — cập nhật không gián đoạn**.*
+>
+> *Khi nhóm push code mới, Docker Swarm thực hiện:*
+> 1. *Khởi động container **V2 mới** TRƯỚC khi tắt V1 cũ*
+> 2. *Chờ container V2 vượt qua **Health Check** — báo trạng thái 'Healthy'*
+> 3. *Chuyển tất cả traffic sang V2, **tắt V1** một cách an toàn*
+> 4. *Lặp lại cho replica tiếp theo, nghỉ 10 giây giữa mỗi vòng*
+>
+> *Nhóm đã chứng minh điều này bằng **k6 load test** — chạy 50 virtual users liên tục trong khi Jenkins đang deploy. Kết quả: **0 request bị lỗi** trong suốt quá trình cập nhật.*
+>
+> *Cấu hình vàng trong `docker-compose.yml`:*
+> ```yaml
+> update_config:
+>   parallelism: 1    # Cập nhật 1 replica mỗi lần
+>   delay: 10s        # Nghỉ 10s giữa mỗi replica
+>   order: start-first  # Bật mới trước, tắt cũ sau
+> ```"
+
+---
+
+---
+
+## SLIDE 9 — OBSERVABILITY STACK (LGTM)
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ kiến trúc observability nền tối. Bốn cột màu sắc nhãn: L (cam) = Loki (Logs) với icon file log, G (vàng) = Grafana (Dashboard) với icon biểu đồ, T (xanh dương) = Tempo (Traces) với icon timeline/span, M (xanh lá) = Mimir/Prometheus (Metrics) với icon đồng hồ đo. TRUNG TÂM: icon bộ thu thập Grafana Alloy (hình phễu) với mũi tên từ các container Docker vào Alloy, rồi Alloy gửi lên Grafana Cloud. Giao diện dashboard Grafana mẫu hiển thị biểu đồ CPU, bảng replica service, và panel log. Chủ đề tối chuyên nghiệp."
+
+### 🎤 Lời thuyết trình:
+> *"Biết hệ thống chạy nhưng không biết **bên trong đang xảy ra gì** là rủi ro lớn. Nhóm em triển khai bộ **LGTM Stack** của Grafana Cloud:*
+>
+> *- 📋 **Loki (Logs):** Alloy gắn vào Docker socket, thu thập log real-time từ tất cả container. Khi backend có lỗi, log hiện ngay trên Grafana*
+>
+> *- 📊 **Mimir/Prometheus (Metrics):** cAdvisor đo CPU, RAM, Restart Count của từng container. Swarm Exporter theo dõi số replica đang chạy vs số mong muốn*
+>
+> *- 🔍 **Tempo (Traces):** Backend FastAPI tích hợp OpenTelemetry, gửi trace dữ liệu qua OTLP HTTP. Khi có request chậm, có thể truy vết đúng đến dòng code*
+>
+> *- 📈 **Grafana (Dashboard):** Tổng hợp tất cả thành dashboard tập trung — Service Health, CPU/RAM, Deployment Status, Logs*
+>
+> *Toàn bộ dữ liệu được gắn nhãn `nodename` để phân biệt giữa máy Manager và Worker — không bị lẫn metrics."*
+
+---
+
+---
+
+## SLIDE 10 — AUTO-SCALING TỰ ĐỘNG
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Sơ đồ luồng phong cách hoạt họa. Timeline từ trái sang phải: Icon 1: công cụ k6 load test gửi mũi tên traffic (300 virtual users). Icon 2: đồng hồ đo CPU hiển thị 85% đỏ. Icon 3: Alert rule Grafana Cloud 'FIRING' với icon lửa cam. Icon 4: mũi tên Webhook → Jenkins job đang chạy. Icon 5: Docker service hiển thị '1 replica → 3 replicas' với các stack container đang lớn lên. Icon 6: đồng hồ đo CPU giảm còn 40% xanh lá. Phía dưới: luồng ngược chiều cho scale-down sau 5 phút tải thấp trở về 2 replicas. Sơ đồ DevOps chuyên nghiệp, nền tối với màu cam và xanh lá làm điểm nhấn."
+
+### 🎤 Lời thuyết trình:
+> *"Tính năng đặc sắc nhất của dự án là **Auto-Scaling hoàn toàn tự động** — không cần con người can thiệp:*
+>
+> ***Kịch bản Scale-Up:***
+> 1. *k6 tạo tải **300 Virtual Users** → CPU Worker Node vọt lên 85%*
+> 2. *Grafana Cloud phát hiện CPU > 80% **liên tục 2 phút** → Alert FIRING*
+> 3. *Alert gửi **Webhook** tới Jenkins: POST `/job/auto-scale-job/buildWithParameters?ACTION=scale-up`*
+> 4. *Jenkins chạy: `docker service scale frontend=3 backend=3`*
+> 5. *Swarm phân bổ container mới sang máy **Manager đang rảnh***
+> 6. *k6 response time **giảm** — hệ thống ổn định trở lại ✅*
+>
+> ***Kịch bản Scale-Down:***
+> - *Sau khi tải giảm, CPU < 30% **liên tục 5 phút** → Alert khác fire*
+> - *Jenkins scale về `frontend=2 backend=2` → tiết kiệm tài nguyên*
+>
+> *Telegram thông báo 📈 khi scale-up và 📉 khi scale-down — mọi action đều có audit trail."*
+
+---
+
+---
+
+## SLIDE 11 — CHATOPS & TELEGRAM NOTIFICATION
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Mockup điện thoại thông minh hiển thị giao diện chat Telegram. Tin nhắn từ Jenkins bot: Tin đầu tiên có dấu tích xanh '✅ Jenkins Build Alert — Dự án: jenkins-cicd-pipeline — Build: #74 — Trạng thái: THÀNH CÔNG — URL: http://...'. Tin thứ hai '📈 Tự động Scale UP — Replicas: 3 — Lý do: CPU 85% vượt ngưỡng'. Tin thứ ba hiển thị thẻ trạng thái hệ thống với CPU 42%, RAM 38%, danh sách Docker containers. Giao diện mobile gọn gàng, màu xanh ngọc Telegram, nền tối với hiệu ứng thông báo phát sáng."
+
+### 🎤 Lời thuyết trình:
+> *"Một DevOps system tốt không chỉ tự động hóa mà còn **thông báo kịp thời**. Nhóm em tích hợp **Telegram Bot** như một trung tâm thông báo:*
+>
+> *- Sau mỗi Jenkins build: nhận ngay ✅ SUCCESS hoặc ❌ FAILURE với link trực tiếp đến log*
+> - *Khi Auto-Scale được kích hoạt: nhận thông báo 📈 scale-up hoặc 📉 scale-down với lý do*
+> - *Tính năng **ChatOps `/status`**: nhập lệnh vào giao diện web → backend đọc psutil + Docker API → trả về CPU%, RAM%, Disk%, danh sách container — không cần SSH*
+>
+> *Trong tương lai có thể mở rộng thành `/logs backend 1h` hoặc `/restart backend` — điều khiển toàn bộ hệ thống qua chat mà không cần terminal."*
+
+---
+
+---
+
+## SLIDE 12 — KẾT LUẬN & DEMO
+
+### 📸 Mô tả hình gen AI:
+> **Prompt:** "Slide tổng kết gọn gàng nền tối. TRÁI: Sơ đồ vòng tròn DevOps loop hoàn chỉnh: Code → Build → Test → Deploy → Monitor → Scale → (lặp lại). Mỗi bước có logo công nghệ tương ứng: GitHub, Docker, Pytest, Docker Swarm, Grafana, Jenkins. PHẢI: Danh sách dọc các thành tích với dấu tích xanh: '✅ Zero Downtime Deployment', '✅ CI/CD Pipeline tự động', '✅ Observability real-time', '✅ Hạ tầng Auto-Scaling', '✅ ChatOps thông báo'. Thiết kế slide kết thúc thuyết trình chuyên nghiệp."
+
+### 🎤 Lời thuyết trình:
+> *"Nhìn lại toàn bộ hành trình, nhóm em đã xây dựng được một hệ thống DevOps **hoàn chỉnh và tự động hóa cao** bằng Docker:*
+>
+> *✅ **Zero Downtime Deployment** — cập nhật code mà không gián đoạn người dùng*
+> *✅ **CI/CD Pipeline tự động** — từ git push đến production trong 3-5 phút*  
+> *✅ **Observability đầy đủ** — Logs, Metrics, Traces tập trung trên Grafana Cloud*
+> *✅ **Auto-Scaling thông minh** — tự scale up/down theo tải thực tế*
+> *✅ **ChatOps Notifications** — mọi sự kiện đều có thông báo Telegram*
+>
+> *Docker không chỉ là công cụ đóng gói — Docker là **nền tảng tư duy** giúp chúng ta xây dựng hệ thống **nhất quán, tự động hóa và quan sát được**.*
+>
+> *Bây giờ nhóm em sẽ demo trực tiếp hệ thống đang chạy trên AWS. Thầy cô và các bạn có câu hỏi gì không ạ?"*
+
+---
+
+---
+
+## 📊 BẢNG TÓM TẮT CÔNG NGHỆ
+
+| Layer | Công nghệ | Vai trò |
+|-------|-----------|---------|
+| 🖥️ Hạ tầng | AWS EC2 (2 nodes) | Cloud servers |
+| 🐳 Container | Docker + Docker Swarm | Orchestration |
+| 🔄 CI/CD | Jenkins + Jenkinsfile | Automation pipeline |
+| 🎨 Frontend | React + Vite + Nginx | User interface |
+| ⚡ Backend | FastAPI (Python) | REST API |
+| 🗄️ Database | Supabase (PostgreSQL) | Data storage |
+| 📦 Registry | Docker Hub | Image storage |
+| 📊 Metrics | Prometheus / cAdvisor | Resource monitoring |
+| 📋 Logs | Grafana Loki + Alloy | Log aggregation |
+| 🔍 Traces | Grafana Tempo + OTLP | Request tracing |
+| 📈 Dashboard | Grafana Cloud | Visualization |
+| 🤖 ChatOps | Telegram Bot API | Notifications |
+| 🧪 Load Test | k6 | Performance testing |
+
+---
+
+## 💡 CÁC CÂU HỎI THƯỜNG GẶP (Q&A prep)
+
+**Q: Tại sao chọn Docker Swarm thay vì Kubernetes?**
+> Swarm đơn giản hơn, phù hợp với quy mô nhỏ 2 node. Kubernetes phù hợp khi có 10+ node và team lớn.
+
+**Q: Chi phí AWS thực tế là bao nhiêu?**
+> Manager: `c7i.large` ~$70/tháng. Worker: `t3.small` ~$15/tháng. Tổng ~$85/tháng cho cả hệ thống production.
+
+**Q: Nếu Jenkins chết thì sao?**
+> Ứng dụng vẫn chạy bình thường — Jenkins chỉ cần khi deploy. Docker Swarm tự tái tạo container lỗi (Self-Healing).
+
+**Q: Làm sao rollback khi deploy fail?**
+> Mỗi image có tag = BUILD_NUMBER. Rollback bằng: `docker service update --image toantra349/backend:65 auto-deploy_stack_backend`
