@@ -23,7 +23,7 @@
 **Auto-Deploy Stack** là một hệ thống DevOps end-to-end, production-ready, triển khai ứng dụng Fullstack (React + FastAPI) trên hạ tầng **Docker Swarm (AWS EC2)** với:
 
 - 🔄 **CI/CD Pipeline tự động hoàn toàn** bằng Jenkins — từ `git push` đến deploy live
-- 📈 **Auto-Scaling thông minh** — Grafana Alert → Webhook → Jenkins → `docker service scale`
+- 📈 **Auto-Scaling thông minh** — Grafana Alert → Webhook → Jenkins. → `docker service scale`
 - 🔭 **Observability Stack đầy đủ (LGTM)** — Metrics, Logs, Traces, Alerting qua Grafana Cloud
 - 🤖 **ChatOps via Telegram** — thông báo build, trạng thái hệ thống, kết quả scale real-time
 - 🗄️ **Database**: PostgreSQL trên Supabase (managed cloud)
